@@ -3,11 +3,11 @@
 #
 
 # Load packages
-library(tidyverse)
 library(parallel)
 library(splines)
 library(mgcv)
 library(HiddenMarkov)
+library(tidyverse)
 
 # Source functions
 list.files(path = "functions", full.names = TRUE) %>%
