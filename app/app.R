@@ -16,7 +16,7 @@ library(leaflet)
 # Load case.data and outbreak.data
 # Use walk to return invisible output
 # Put output in Global Environment
-list.files(path = "data/processed", full.names = TRUE, recursive = TRUE) %>%
+list.files(path = "data", full.names = TRUE, recursive = TRUE) %>%
   str_subset(pattern = ".Rdata") %>%
   walk(load, envir = .GlobalEnv)
 
