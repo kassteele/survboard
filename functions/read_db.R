@@ -1,63 +1,35 @@
 # Description:
-# This function reads data from specified file or database,
+# This function reads data from specified database,
 # does some mutations and returns a dataframe
 #
 # Arguments:
-# file = path and filename. Only xlxs file are currently supported
 # database = database name
 # selection = database selection
 #
 # Value:
-# Dataframe
+# Tibble
 #
 # Author:
 # Jan van de Kassteele
 
-read_db <- function(file = NULL, database, selection) {
+read_db <- function(database, selection) {
 
 	#
 	# Init ----
 	#
 
 	# Load packages
-	# library(readxl)
 	library(odbc)
 
 	#
-	# Read data ----
+	# Import data from database ----
 	#
-
-	# # Read from file or database?
-	# if (!is.null(file)) {
-	#
-	# 	# If file, first determine file type...
-	# 	ftype <- tools::file_ext(file)
-	# 	# ...then load data from file
-	# 	if (ftype == "xlsx") {
-	# 		data <- read_xlsx(file, na = ".") # JK: . = NA in given xlsx file. Should be empty cell.
-	# 	} else if (ftype == "csv") {
-	# 		data <- read_csv(file)
-	# 	} else {
-	# 		# If file is not xlsx or csv, then stop
-	# 		str_c("File type ", ftype, " not supported") %>% stop
-	# 	}
-	#
-	# } else {
-	# Load data from database
-
-	# Windows or Linux? Needed to select driver
-	# On Linux we need FreeTDS (SQL) and oracle-instantclient-basic (Oracle)
-	platform <- Sys.info()["sysname"]
-	attributes(platform) <- NULL
 
 	# Connect to database
 	con <- dbConnect(
 		drv = odbc(),
-		driver = ifelse(
-			test = platform == "Windows",
-			yes = "SQL Server", # Windows
-			no  = "FreeTDS"),   # Linux
-		server = "SQLW04-EXT-P\\RIVM01",
+		driver = "ODBC Driver 11 for SQL Server",
+		server = "SQLW04-EXT-P",
 		database = database,
 		uid = credentials["OSIRIS", "username"],
 		pwd = credentials["OSIRIS", "password"])
