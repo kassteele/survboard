@@ -204,5 +204,5 @@ outbreak.data <- mclapply(
 # Save results ----
 #
 
-save(case.data,     file = "data/case data.Rdata")
-save(outbreak.data, file = "data/outbreak data.Rdata")
+save(case.data,     file = "data/case_data.Rdata")
+save(outbreak.data, file = "data/outbreak_data.Rdata")
