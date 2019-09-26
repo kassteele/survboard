@@ -15,5 +15,6 @@
 documents/
 data/
 envs/
+logs/
 R/
 ShinyApps/
