@@ -29,7 +29,7 @@ read_db <- function(database, selection) {
 	con <- dbConnect(
 		drv = odbc(),
 		driver = "ODBC Driver 11 for SQL Server",
-		server = "SQLW04-EXT-P",
+		server = "RIVM-SQLDB-W03P.rivm.ssc-campus.nl",
 		database = database,
 		uid = credentials["OSIRIS", "username"],
 		pwd = credentials["OSIRIS", "password"])
