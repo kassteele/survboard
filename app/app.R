@@ -597,16 +597,20 @@ server <- function(input, output, session) {
 
 			# Get plot information from pl_out_time
 			# Use plotly_relayout to return plot limits
+			# unlist output to force it to a vector
+			# This prevents buggy behavior in filtering
 			plot.info <- event_data(
 				event  = "plotly_relayout",
-				source = "pl_out_time")
-			if (is.null(plot.info)) return()
+				source = "pl_out_time") %>%
+				unlist
+			# Do nothing if plot.info does not contain "xaxis"
+			if (plot.info[1] %>% names %>% str_detect(pattern = "xaxis") %>% `!`) return()
 
 			# Set elements of select.time in dis$case.data to TRUE if WeekFS is between xaxis.range
 			dis$case.data <- dis$case.data %>%
 				mutate(select.time = WeekFS %>% between(
-					left  = plot.info$xaxis.range[1] %>% as.Date,
-					right = plot.info$xaxis.range[2] %>% as.Date))
+					left  = plot.info[1] %>% as.Date,
+					right = plot.info[2] %>% as.Date))
 
 			# Display "Filter active" text
 			output$tx_out_flt_time <- renderText({"Filter active"})
