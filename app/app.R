@@ -36,7 +36,7 @@ basemap <- leaflet() %>%
 #
 
 # Create page with top level navigation bar
-# Add ID to determine which tab is currently active
+# Add id to determine which tab is currently active
 ui <- navbarPage(
 	theme = shinytheme("flatly"),
 	title = "Surveillance Dashboard",
@@ -61,7 +61,7 @@ ui <- navbarPage(
 				selectInput(
 					inputId = "sl_inp_disease",
 					label   = "Disease name",
-					selected = "Salmonella Enteritidis",
+					selected = "Legionella",
 					choices = case.data %>% pull(DiseaseName) %>% unique %>% sort,
 					selectize = FALSE),
 				# Subtype selection
@@ -157,28 +157,58 @@ ui <- navbarPage(
 					width = 6,
 
 					# Age and sex ----
-					# Filter button
-					actionButton(
-						inputId = "ab_inp_flt_agesex",
-						label   = "Filter",
-						icon    = icon("filter"),
-						style   = "width:60px; height:24px; padding:0px; font-size:80%"),
-					# Reset button
-					actionButton(
-						inputId = "ab_inp_rst_agesex",
-						label   = "Reset",
-						icon    = icon("undo"),
-						style   = "width:60px; height:24px; padding:0px; font-size:80%"),
-					# Filter active text
-					textOutput(
-						outputId = "tx_out_flt_agesex",
-						inline   = TRUE),
-					tags$head(
-						tags$style("#tx_out_flt_agesex{font-size:80%; font-style: italic;}")),
-					# Plot
-					plotlyOutput(
-						outputId = "pl_out_agesex",
-						height   = "300px"),
+					# Insert row
+					fluidRow(
+
+						# First column
+						column(
+							width = 10,
+
+							# Filter button
+							actionButton(
+								inputId = "ab_inp_flt_agesex",
+								label   = "Filter",
+								icon    = icon("filter"),
+								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Reset button
+							actionButton(
+								inputId = "ab_inp_rst_agesex",
+								label   = "Reset",
+								icon    = icon("undo"),
+								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Filter active text
+							textOutput(
+								outputId = "tx_out_flt_agesex",
+								inline   = TRUE),
+							tags$head(
+								tags$style("#tx_out_flt_agesex{font-size:80%; font-style: italic;}")),
+							# Plot
+							plotlyOutput(
+								outputId = "pl_out_agesex",
+								height   = "300px")),
+
+						# Second column
+						column(
+							width = 2,
+
+							# Some space
+							br(),
+							br(),
+							br(),
+							# Sex selection checkboxes
+							checkboxGroupInput(
+								inputId      = "ch_inp_sel_sex",
+								label        = NULL,
+								choiceNames  = list("Males", "Females"),
+								selected     = list("Male", "Female"),
+								choiceValues = list("Male", "Female")),
+							# Age selection checkboxes
+							checkboxGroupInput(
+								inputId      = "ch_inp_sel_age",
+								label        = NULL,
+								choiceNames  = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"),
+								selected     = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"),
+								choiceValues = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+")))),
 
 					# Bar
 					tags$hr(
@@ -478,12 +508,13 @@ server <- function(input, output, session) {
 			# i.e. no active filters
 			dis$case.data <- dis$case.data %>%
 				mutate(
-					select.time   = TRUE,
-					select.map    = TRUE,
-					select.agesex = TRUE,
-					select.cat1   = TRUE,
-					select.cat2   = TRUE,
-					select.cat3   = TRUE)
+					select.time = TRUE,
+					select.map  = TRUE,
+					select.age  = TRUE,
+					select.sex  = TRUE,
+					select.cat1 = TRUE,
+					select.cat2 = TRUE,
+					select.cat3 = TRUE)
 
 			# Set initial radius and step size for the circles on the map
 			n <- dis$case.data %>%
@@ -516,7 +547,7 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				filter(select.time & select.map & select.agesex & select.cat1 & select.cat2 & select.cat3) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
 				# Aggregate cases by week
 				mutate(WeekFS = WeekFS %>% factor(levels = week.seq %>% as.character)) %>%
 				group_by(WeekFS, .drop = FALSE) %>%
@@ -576,7 +607,7 @@ server <- function(input, output, session) {
 					yaxis = list(
 						range = ylim),
 					hovermode = "compare",
-					dragmode = "select",
+					dragmode = "zoom",
 					showlegend = FALSE)
 
 			# {if (all(dis$case.data$select.time))
@@ -654,7 +685,9 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				filter(select.time & select.map & select.agesex & select.cat1 & select.cat2 & select.cat3 & !is.na(x)) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
+				# Filter out missing coordinates
+				filter(!is.na(x)) %>%
 				# Aggregate cases by PC4 (and xy-coordinates to keep them)
 				group_by(PC4_numbers, x, y) %>%
 				summarize(Cases = n()) %>%
@@ -734,18 +767,17 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				# Only plot Males and Females. The rest is neglectable
-				filter(select.time & select.map & select.agesex & select.cat1 & select.cat2 & select.cat3) %>%
-				filter(Sex %in% c("Male", "Female")) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
+				# Filter on selected age/sex input
+				filter(Agecat %in% input$ch_inp_sel_age) %>%
+				filter(Sex    %in% input$ch_inp_sel_sex) %>%
+				# Only plot males and females
 				mutate(Sex = Sex %>% factor(levels = c("Male", "Female"))) %>%
 				# Aggregate cases by Agecat and Sex
 				group_by(Agecat, Sex, .drop = FALSE) %>%
 				summarize(Cases = n()) %>%
-				# Some additions
+				# Trick to plot males left, females right
 				mutate(
-					# Add Agecat_Sex intercation to be used as key for selection and filtering
-					Agecat_Sex = interaction(Agecat, Sex, sep = "_"),
-					# Trick to plot males left, females right
 					Cases = ifelse(Sex == "Male", yes = -Cases, no = Cases))
 
 			# Set plot limits
@@ -756,7 +788,7 @@ server <- function(input, output, session) {
 				data   = plot.data,
 				source = "pl_out_agesex") %>%
 				add_bars(
-					x = ~ Cases, y = ~ Agecat, key = ~ Agecat_Sex,
+					x = ~ Cases, y = ~ Agecat,
 					color = ~ Sex, colors = c("#007bc7", "#a90061"),
 					hoverinfo = "text", text = ~ abs(Cases)) %>%
 				layout(
@@ -768,8 +800,8 @@ server <- function(input, output, session) {
 						ticktext = xlim %>% pretty(n = 6) %>% abs),
 					yaxis = list(range = c(-0.6, 4.6)),
 					hovermode = "compare",
-					dragmode = "select",
-					showlegend = TRUE)
+					dragmode = "zoom",
+					showlegend = FALSE)
 		})
 
 	# When ab_inp_flt_agesex is pressed
@@ -777,18 +809,11 @@ server <- function(input, output, session) {
 		eventExpr = input$ab_inp_flt_agesex,
 		handlerExpr = {
 
-			# Get plot information from pl_out_agesex
-			# Use plotly_selected to return bars after selection
-			# (vs. plotly_selecting, which is instantanious,
-			#  vs. plotly_brushed, which returns plot limits)
-			plot.info <- event_data(
-				event  = "plotly_selected",
-				source = "pl_out_agesex")
-			if (is.null(plot.info)) return()
-
-			# Set elements of select.agesex in dis$case.data to TRUE if Agecat_Sex has been selected
+			# Set elements of select.age/sex in dis$case.data to TRUE if age/sex has been selected
 			dis$case.data <- dis$case.data %>%
-				mutate(select.agesex = interaction(Agecat, Sex, sep = "_") %in% plot.info$key)
+				mutate(
+					select.age = Agecat %in% input$ch_inp_sel_age,
+					select.sex = Sex    %in% input$ch_inp_sel_sex)
 
 			# Display "Filter active" text
 			output$tx_out_flt_agesex <- renderText({"Filter active"})
@@ -799,9 +824,23 @@ server <- function(input, output, session) {
 		eventExpr = input$ab_inp_rst_agesex,
 		handlerExpr = {
 
-			# Reset all elements of select.agesex in dis$case.data back to TRUE
+			# Reset all elements of select.age/sex in dis$case.data back to TRUE
 			dis$case.data <- dis$case.data %>%
-				mutate(select.agesex = TRUE)
+				mutate(
+					select.age = TRUE,
+					select.sex = TRUE)
+
+			# Check all age groups
+			updateCheckboxInput(
+				session = session,
+				inputId = "ch_inp_sel_age",
+				value = c("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"))
+
+			# Check both sex
+			updateCheckboxInput(
+				session = session,
+				inputId = "ch_inp_sel_sex",
+				value = c("Male", "Female"))
 
 			# Remove "Filter active" text
 			output$tx_out_flt_agesex <- renderText({})
@@ -818,7 +857,7 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				filter(select.time & select.map & select.agesex & select.cat1 & select.cat2 & select.cat3) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
 				# Aggregate cases by cat1
 				group_by(cat1, .drop = TRUE) %>%
 				summarize(Cases = n()) %>%
@@ -910,7 +949,7 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				filter(select.time & select.map & select.agesex & select.cat2 & select.cat2 & select.cat3) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
 				# Aggregate cases by cat2
 				group_by(cat2, .drop = TRUE) %>%
 				summarize(Cases = n()) %>%
@@ -1002,7 +1041,7 @@ server <- function(input, output, session) {
 			# Create plot.data from dis$case.data
 			plot.data <- dis$case.data %>%
 				# Apply filters
-				filter(select.time & select.map & select.agesex & select.cat3 & select.cat2 & select.cat3) %>%
+				filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
 				# Aggregate cases by cat3
 				group_by(cat3, .drop = TRUE) %>%
 				summarize(Cases = n()) %>%
