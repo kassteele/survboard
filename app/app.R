@@ -59,10 +59,10 @@ ui <- navbarPage(
 
 				# Disease selection
 				selectInput(
-					inputId = "sl_inp_disease",
-					label   = "Disease name",
-					selected = "Legionella",
-					choices = case.data %>% pull(DiseaseName) %>% unique %>% sort,
+					inputId   = "sl_inp_disease",
+					label     = "Disease name",
+					selected  = "Legionella",
+					choices   = case.data %>% pull(DiseaseName) %>% unique %>% sort,
 					selectize = FALSE),
 				# Subtype selection
 				selectInput(
@@ -98,9 +98,9 @@ ui <- navbarPage(
 					# Reset button
 					actionButton(
 						inputId = "ab_inp_rst_time",
-						label = "Reset",
-						icon = icon("undo"),
-						style = "width:60px; height:24px; padding:0px; font-size:80%"),
+						label   = "Reset",
+						icon    = icon("undo"),
+						style   = "width:60px; height:24px; padding:0px; font-size:80%"),
 					# Filter active text
 					textOutput(
 						outputId = "tx_out_flt_time",
@@ -569,12 +569,19 @@ server <- function(input, output, session) {
 
 			# Plot
 			plot_ly(
-				data = plot.data,
 				source = "pl_out_time") %>%
 				add_bars(
-					x = ~ WeekFS, y = ~ Cases,
+					data = plot.data,
+					x = ~ WeekFS,
+					y = ~ Cases,
 					marker = list(color = ~ Color),
-					name = "") %>%
+					name = "Cases") %>%
+				add_lines(
+					data = dis$outbreak.data,
+					x = ~ WeekFS,
+					y = ~ mu.baseline %>% "*"(sum(plot.data$Cases)/sum(dis$outbreak.data$Cases)) %>% round(digits = 2),
+					line = list(color = "black", width = 1),
+					name = "Baseline") %>%
 				layout(
 					bargap = 0.05,
 					xaxis = list(
@@ -608,17 +615,10 @@ server <- function(input, output, session) {
 						range = ylim),
 					hovermode = "compare",
 					dragmode = "zoom",
-					showlegend = FALSE)
-
-			# {if (all(dis$case.data$select.time))
-			# 	add_lines(.,
-			# 		data = plot.data,
-			# 		x = ~ WeekFS, y = ~ mu.baseline,
-			# 		name = "", hoverinfo = "none",
-			# 		line = list(color = "black", width = 1))
-			# 	else .} %>%
-
-
+					showlegend = TRUE,
+					legend = list(
+						orientation = "h",
+						y = -0.5))
 		})
 
 	# When ab_inp_flt_time is pressed
