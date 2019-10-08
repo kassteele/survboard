@@ -516,6 +516,14 @@ server <- function(input, output, session) {
 					select.cat2 = TRUE,
 					select.cat3 = TRUE)
 
+			# Remove all "Filter active" texts
+			output$tx_out_flt_time   <- renderText({})
+			output$tx_out_flt_map    <- renderText({})
+			output$tx_out_flt_agesex <- renderText({})
+			output$tx_out_flt_cat1   <- renderText({})
+			output$tx_out_flt_cat1   <- renderText({})
+			output$tx_out_flt_cat1   <- renderText({})
+
 			# Set initial radius and step size for the circles on the map
 			n <- dis$case.data %>%
 				group_by(PC4_numbers) %>%
