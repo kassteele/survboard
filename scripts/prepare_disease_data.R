@@ -25,12 +25,8 @@ credentials <- read.delim(
 GrYlRd <- c("#275937", "#39870c", "#f9e11e", "#d52b1e", "#a90061") %>%
 	colorRampPalette
 
-#
-# PC4 data ----
-#
-
-# Read most recent pc4 centroids from RIVM geodatabase
-pc4.data <- read_pc4(table = "adm_pc4_2018_centroide")
+# Import pc4 population weighted centroids (pc4_centroids.data)
+load(file = "data/pc4/pc4_centroids.RData")
 
 #
 # Read and clean disease data ----
