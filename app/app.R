@@ -2,7 +2,7 @@
 # Init ----
 #
 
-# # Load packages
+# Load packages
 library(shiny)
 library(shinythemes)
 library(tidyverse)
@@ -199,7 +199,7 @@ ui <- navbarPage(
 							checkboxGroupInput(
 								inputId      = "ch_inp_sel_sex",
 								label        = NULL,
-								choiceNames  = list("Males", "Females"),
+								choiceNames  = list("Male", "Female"),
 								selected     = list("Male", "Female"),
 								choiceValues = list("Male", "Female")),
 							# Age selection checkboxes
@@ -515,6 +515,16 @@ server <- function(input, output, session) {
 					select.cat1 = TRUE,
 					select.cat2 = TRUE,
 					select.cat3 = TRUE)
+
+			# Remove all filter settings
+			updateCheckboxGroupInput(
+				inputId  = "ch_inp_sel_age",
+				selected = dis$case.data %>% pull(Agecat) %>% levels,
+				session  = session)
+			updateCheckboxGroupInput(
+				inputId  = "ch_inp_sel_sex",
+				selected = c("Male", "Female"),
+				session  = session)
 
 			# Remove all "Filter active" texts
 			output$tx_out_flt_time   <- renderText({})
