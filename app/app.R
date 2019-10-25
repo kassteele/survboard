@@ -13,7 +13,7 @@ library(leaflet)
 # Load data ----
 #
 
-# # Load case.data and outbreak.data
+# Load case.data and outbreak.data
 load(file = "../data/case_data.Rdata")
 load(file = "../data/outbreak_data.Rdata")
 
@@ -61,15 +61,22 @@ ui <- navbarPage(
 				selectInput(
 					inputId   = "sl_inp_disease",
 					label     = "Disease name",
+					choices   = outbreak.data %>% pull(DiseaseName) %>% unique %>% sort,
 					selected  = "Legionella",
-					choices   = case.data %>% pull(DiseaseName) %>% unique %>% sort,
 					selectize = FALSE),
+
 				# Subtype selection
 				selectInput(
 					inputId   = "sl_inp_subtype",
 					label     = "Subtype",
 					choices   = "",
 					selectize = FALSE),
+
+				# Checkbox show/hide diseases with fewer than 5 cases/year
+				checkboxInput(
+					inputId = "ch_inp_hidefew",
+					label   = "Hide disease names and subtypes with fewer than 5 cases per year",
+					value   = TRUE),
 
 				# Bar
 				tags$hr(
@@ -453,18 +460,57 @@ server <- function(input, output, session) {
 	# Disease selection ----
 	#
 
+	# The options to choose from depend on ch_inp_hidefew
+	# If checked, use names in outbreak.data (fewer names) = initial setting in UI
+	# If unchecked, use names in case.data (all names)
+	# Use ignoreInit = TRUE to prevent unwanted update after initial setting of ch_inp_hidefew in UI
+	observeEvent(
+		eventExpr = input$ch_inp_hidefew,
+		ignoreInit = TRUE,
+		handlerExpr = {
+
+			if (input$ch_inp_hidefew) {
+				# ch_inp_hidefew checked:
+				# For the selected, use current selection if present in outbreak.data,
+				# if not, pre-select Legionella
+				updateSelectInput(
+					session = session,
+					inputId = "sl_inp_disease",
+					choices = outbreak.data %>% pull(DiseaseName) %>% unique %>% sort,
+					selected = if (input$sl_inp_disease %in% (outbreak.data %>% pull(DiseaseName) %>% unique)) {
+						input$sl_inp_disease
+					} else {
+						"Legionella"
+					})
+			} else {
+				# ch_inp_hidefew unchecked:
+				# For the selected, use current. No check needed
+				updateSelectInput(
+					session = session,
+					inputId = "sl_inp_disease",
+					choices = case.data %>% pull(DiseaseName) %>% unique %>% sort,
+					selected = input$sl_inp_disease)
+			}
+		})
+
 	# When DiseaseName in sl_inp_disease updates,
 	# then update the choices in sl_inp_subtype of the corresponding SubTypes
+	# This also depends on checkbox ch_inp_hidefew
 	observe({
 		updateSelectInput(
 			session = session,
 			inputId = "sl_inp_subtype",
-			label   = "Subtype",
 			choices = c(
+				# "No subtype" is the default
 				`No subtype` = "",
-				case.data %>%
-					filter(DiseaseName == input$sl_inp_disease) %>%
-					pull(SubType) %>% unique %>% sort))
+				# If there any subtypes, add them to the choices
+				if (input$ch_inp_hidefew) {
+					# ch_inp_hidefew checked:
+					outbreak.data %>% filter(DiseaseName == input$sl_inp_disease) %>% pull(SubType) %>% unique %>% sort
+				} else {
+					# ch_inp_hidefew unchecked:
+					case.data %>% filter(DiseaseName == input$sl_inp_disease)%>% pull(SubType) %>% unique %>% sort
+				}))
 	})
 
 	#
@@ -499,6 +545,7 @@ server <- function(input, output, session) {
 
 			# For outbreak.data, the above two-step filter operation can be done in one step,
 			# because SubType = "" (NA in outbreak.data) has its own records in outbreak.data
+			# It returns an empty tibble if no outbreak detection was performed
 			dis$outbreak.data <- outbreak.data %>%
 				filter(
 					DiseaseName                  == input$sl_inp_disease,
@@ -570,9 +617,32 @@ server <- function(input, output, session) {
 				mutate(WeekFS = WeekFS %>% factor(levels = week.seq %>% as.character)) %>%
 				group_by(WeekFS, .drop = FALSE) %>%
 				summarize(Cases = n()) %>%
-				mutate(WeekFS = as.Date(WeekFS)) %>%
-				# Add outbreak coloring from dis$outbreak.data
-				left_join(dis$outbreak.data %>% select(WeekFS, Color), by = c("WeekFS" = "WeekFS"))
+				mutate(WeekFS = as.Date(WeekFS))
+
+			# Add outbreak information
+			if (nrow(dis$outbreak.data) > 0) {
+				# Use dis$outbreak.data if this is not empty
+				plot.data <- left_join(
+					plot.data,
+					dis$outbreak.data %>%
+						# Scale mu.baseline according to the number of cases in plot.data (with possible filter)
+						# and the number of cases in dis$outbreak.data (no filter)
+						mutate(
+							mu.baseline = mu.baseline %>% "*"(sum(plot.data$Cases)/sum(Cases))) %>%
+						# Select relevant columns
+						select(
+							WeekFS, mu.baseline, Color),
+					# Join by WeekFS
+					by = c("WeekFS" = "WeekFS"))
+			} else {
+				# Else, use default settings
+				plot.data <- plot.data %>%
+					# mu.baseline is just the average number of cases/week
+					# All bars are green
+					mutate(
+						mu.baseline = mean(Cases),
+						Color = "#275937")
+			}
 
 			# Set plot limits
 			if (all(dis$case.data$select.time)) {
@@ -587,17 +657,16 @@ server <- function(input, output, session) {
 
 			# Plot
 			plot_ly(
+				data = plot.data,
 				source = "pl_out_time") %>%
 				add_bars(
-					data = plot.data,
 					x = ~ WeekFS,
 					y = ~ Cases,
 					marker = list(color = ~ Color),
 					name = "Cases") %>%
 				add_lines(
-					data = dis$outbreak.data,
 					x = ~ WeekFS,
-					y = ~ mu.baseline %>% "*"(sum(plot.data$Cases)/sum(dis$outbreak.data$Cases)) %>% round(digits = 2),
+					y = ~ mu.baseline %>% round(digits = 2),
 					line = list(color = "black", width = 1),
 					name = "Baseline") %>%
 				layout(
