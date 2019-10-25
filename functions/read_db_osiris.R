@@ -1,9 +1,9 @@
 # Description:
-# This function reads data from specified database,
-# does some mutations and returns a dataframe
+# This function reads data from the OSIRIS database,
+# does some mutations and returns a tibble
 #
 # Arguments:
-# database = database name
+# database  = database name
 # selection = database selection
 #
 # Value:
@@ -12,7 +12,7 @@
 # Author:
 # Jan van de Kassteele
 
-read_db <- function(database, selection) {
+read_db_osiris <- function(database, selection) {
 
 	#
 	# Init ----
@@ -40,23 +40,8 @@ read_db <- function(database, selection) {
 		statement = str_c("select * from ", selection)) %>%
 		as_tibble
 
-	# library(ROracle)
-	#
-	# con <- dbConnect(
-	# 	drv = dbDriver("Oracle"),
-	# 	dbname = "(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=unilabdbl01-ext-ota.rivm.nl)(PORT=1521))(CONNECT_DATA=(SID=uni64t)))",
-	# 	username = credentials["LIMS", "username"],
-	# 	password = credentials["LIMS", "password"])
-	#
-	# salmo.data <- dbGetQuery(
-	# 	conn = con,
-	# 	statement = "select * from unilab.AVEPIEXTRACTSALMO")
-	#
-	# dbDisconnect(conn = con)
-
 	# Close connection
 	dbDisconnect(con)
-	# }
 
 	#
 	# Clean data ----
@@ -65,47 +50,46 @@ read_db <- function(database, selection) {
 	data <- data %>%
 		# Mutations
 		mutate(
-			# As character
-			DiseaseName = DiseaseName %>% as.character,
-			SubType     = SubType     %>% as.character,
-			PatientID   = PatientID   %>% as.character,
-			CaseID      = CaseID      %>% as.character,
-			# Status is a factor
-			Status = Status %>% factor(levels = c("Confirmed", "Suspected", "Unknown")),
-			# Be sure Date for stats and and reporting date are dates
+			# Set data types, just to be sure
+			DiseaseName   = DiseaseName   %>% as.character,
+			SubType       = SubType       %>% as.character,
+			PatientID     = PatientID     %>% as.character,
+			CaseID        = CaseID        %>% as.character,
+			Status        = Status        %>% as.character,
+			Sex           = Sex           %>% as.character,
+			PC2_letters   = PC2_letters   %>% as.character,
+			cat1desc      = cat1desc      %>% as.character,
+			cat2desc      = cat2desc      %>% as.character,
+			cat3desc      = cat3desc      %>% as.character,
+			cat1          = cat1          %>% as.character,
+			cat2          = cat2          %>% as.character,
+			cat3          = cat3          %>% as.character,
+			DayOfBirth    = DayOfBirth    %>% as.integer,
+			MonthOfBirth  = MonthOfBirth  %>% as.integer,
+			YearOfBirth   = YearOfBirth   %>% as.integer,
+			PC4_numbers   = PC4_numbers   %>% as.integer,
 			DateFS        = DateFS        %>% as.Date,
 			ReportingDate = ReportingDate %>% as.Date,
+			# Other mutations:
+			# Status is a factor
+			Status = Status %>% factor(levels = c("Confirmed", "Suspected", "Unknown")),
 			# If reporting date is missing, assume there is no reporting delay
 			ReportingDate = ReportingDate %>% if_else(is.na(.), true = DateFS, false = .),
-			# Be sure day, month and year of birth are integers
-			DayOfBirth   = DayOfBirth  %>% as.integer,
-			MonthOfBirth = DayOfBirth  %>% as.integer,
-			YearOfBirth  = YearOfBirth %>% as.integer,
 			# If day and/or month are missing, put then halfway the month and/or year
 			DayOfBirth   =  DayOfBirth   %>% if_else(is.na(.), true = 15L, false = .),
 			MonthOfBirth =  MonthOfBirth %>% if_else(is.na(.), true =  7L, false = .),
-			# Postcode types
-			PC4_numbers = PC4_numbers %>% as.integer,
-			PC2_letters = PC2_letters %>% as.character,
-			# Recode sex labels
+			# Sex is a factor. Recode labels
 			Sex = Sex %>%
-				factor(levels = c("M", "F", "T", "G", "U")) %>%
-				fct_recode(Male = "M", Female = "F", Transgender = "T", `Gender neutral` = "G", Unknown = "U") %>%
-				fct_explicit_na(na_level = "Unknown"),
-			# Extra categories, description as is
-			cat1desc = cat1desc,
-			cat2desc = cat2desc,
-			cat3desc = cat3desc,
-			# In contents, replace NA by Unknown
+				na_if("U") %>%
+				factor(levels = c("M", "F", "T", "G")) %>%
+				fct_recode(Male = "M", Female = "F", Transgender = "T", `Gender neutral` = "G"),
+			# In categories, replace NA by Unknown
 			cat1 = cat1 %>% replace_na("Unknown"),
 			cat2 = cat2 %>% replace_na("Unknown"),
 			cat3 = cat3 %>% replace_na("Unknown"),
 			# Derived quantities
 			DateOfBirth = str_c(YearOfBirth, MonthOfBirth, DayOfBirth, sep = "-") %>% as.Date,
 			Age = (DateFS - DateOfBirth) %>% as.numeric %>% "/"(365.25) %>% floor) %>%
-		# Filter out incorrect values
-		filter(
-			!is.na(DateFS) & DateFS <= Sys.Date() & Age %in% 0:120 & PC4_numbers %in% 1011:9999) %>%
 		# Add Week (ISO 8601, starts on Monday)
 		mutate(
 			WeekFS  = DateFS        %>% cut(breaks = "week") %>% as.Date,
@@ -128,5 +112,4 @@ read_db <- function(database, selection) {
 			cat1desc, cat1,
 			cat2desc, cat2,
 			cat3desc, cat3)
-
 }
