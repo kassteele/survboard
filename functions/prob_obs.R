@@ -1,5 +1,4 @@
 # Observation probabilties given the state dependent distributions
-# This function can handle both NegBin (given theta) and Poisson (theta = Inf)
 prob_obs <- function(x, mu.baseline, theta, beta, log = FALSE) {
 	# Observation probabilties
 	prob <- cbind(
