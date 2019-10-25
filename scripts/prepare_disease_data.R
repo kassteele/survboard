@@ -37,7 +37,9 @@ case.data <- bind_rows(
 	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_measles"),
 	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_gas"),
 	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_legionella"),
-	read_db(database = "OWHDM_SOA", selection = "EPI.vw_SD_gonorrhoea"))
+	read_db(database = "OWHDM_SOA", selection = "EPI.vw_SD_gonorrhoea"),
+	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_bof"),
+	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_listeria"))
 
 #
 # Salmonella ----
