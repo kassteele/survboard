@@ -4,7 +4,6 @@
 
 # Load packages
 library(parallel)
-library(splines)
 library(mgcv)
 library(HiddenMarkov)
 library(tidyverse)
@@ -33,6 +32,7 @@ load(file = "data/pc4/pc4_centroids.RData")
 #
 
 # We create one big tibble for all diseases
+# This takes a while...
 case.data <- bind_rows(
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_measles"),
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_gas"),
@@ -151,8 +151,13 @@ outbreak.data <- bind_rows(
 		mu.baseline = mean(Cases),
 		p.outbreak  = 0,
 		State       = 1L,
-		# Finally, convert WeekFS back to Date class
+		# Convert WeekFS back to Date class
 		WeekFS = WeekFS %>% as.Date) %>%
+	# There is no need to perform outbreak detection on DiseaseName_SubType's with only a few cases/year
+	# Remove DiseaseName_SubType's with on average < 5 cases/year,
+	# i.e. keep DiseaseName_SubType's with initial mu.baseline >= 5/52.17857
+	filter(
+		mu.baseline >= 5/52.17857) %>%
 	# Ungroup
 	ungroup()
 
@@ -161,8 +166,8 @@ rm(outbreak.data_DiseaseName, outbreak.data_SubType)
 
 # Now everything has been set up
 # The actual outbreak detection starts here
-# If there are enough cases, the algorithm in the detect_outbreaks function
-# replaces the initial outbreak characteristics with the estimated characteristics
+# The algorithm in the detect_outbreaks function replaces the initial
+# outbreak characteristics with the estimated characteristics
 
 # Do outbreak detection
 outbreak.data <- mclapply(
