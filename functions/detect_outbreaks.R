@@ -11,29 +11,6 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 	# 10 + floor((1 - 0.55)*(10 + 1 - 1)/0.55)
 
 	#
-	# Check input ----
-	#
-
-	# Which type of outbreak detection?
-	# This depends on the mean number of cases/year
-	# This is the initial mu.baseline (cases/week) in outbreak.data x 52 weeks
-	n.cases_per_year <- outbreak.data[1, "mu.baseline"]*52.17857
-
-	# 1   cases/year: No outbreak detection       - Return output as is
-	# 2-4 cases/year: Simple outbreak detection   - Poisson GLM with nat. cub. spline (df = 2) time trend, without seasonality
-	# 5+  cases/year: Advanced outbreak detection - NegBin GAM with P-spline time trend and seasonal cyclic P-spline
-	if (n.cases_per_year <= 1) {
-		cat("No outbreak detection\n")
-		return(outbreak.data)
-	} else if (n.cases_per_year > 1 & n.cases_per_year <= 4) {
-		cat("Simple outbreak detection\n")
-		simple <- TRUE
-	} else {
-		cat("Advanced outbreak detection\n")
-		simple <- FALSE
-	}
-
-	#
 	# Set-up ----
 	#
 
@@ -64,11 +41,7 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 			u = list(c(1, 0)))
 
 	# Fit log-baseline eta
-	if (simple) {
-		fit.baseline <- fit_baseline_Poisson(outbreak.data)
-	} else {
-		fit.baseline <- fit_baseline_NegBin(outbreak.data)
-	}
+	fit.baseline <- fit_baseline_NegBin(outbreak.data)
 
 	# Add baseline fit to outbreak.data
 	outbreak.data <- outbreak.data %>%
@@ -131,11 +104,7 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 
 		# Update parameters of the state-dependent distributions
 		# Again, first the baseline fit with the updated u's etc. from the E-step
-		if (simple) {
-			fit.baseline <- fit_baseline_Poisson(outbreak.data)
-		} else {
-			fit.baseline <- fit_baseline_NegBin(outbreak.data)
-		}
+		fit.baseline <- fit_baseline_NegBin(outbreak.data)
 		# Then update baseline and theta
 		outbreak.data <- outbreak.data %>%
 			mutate(mu.baseline = fit.baseline$mu.baseline)
