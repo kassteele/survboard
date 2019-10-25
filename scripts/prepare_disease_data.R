@@ -34,34 +34,13 @@ load(file = "data/pc4/pc4_centroids.RData")
 
 # We create one big tibble for all diseases
 case.data <- bind_rows(
-	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_measles"),
-	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_gas"),
-	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_legionella"),
-	read_db(database = "OWHDM_SOA", selection = "EPI.vw_SD_gonorrhoea"),
-	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_bof"),
-	read_db(database = "OWHDM_AIZ", selection = "EPI.vw_SD_listeria"))
-
-#
-# Salmonella ----
-#
-
-# JK: For now, Salmonella gets a special treatment
-# This code chunk will be removed in the future
-
-# 1. Import Salmonella csv file
-salmo.data <- read_salmo(file = "data/raw/Salmonella/Salmonella humane data_ALL.csv")
-
-# 2. Modify dates in salmo.data to mimic real-time data
-last.week <- (Sys.Date() - 7) %>% cut(breaks = "week") %>% as.Date
-salmo.data <- salmo.data %>%
-	mutate(
-		WeekFS  = WeekFS  - max(WeekFS)  + last.week,
-		WeekRep = WeekRep - max(WeekRep) + last.week)
-
-# 3. Add salmo.data to case.data
-case.data <- bind_rows(
-	case.data,
-	salmo.data)
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_measles"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_gas"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_legionella"),
+	read_db_osiris(database = "OWHDM_SOA", selection = "EPI.vw_SD_gonorrhoea"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_bof"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_listeria"),
+	read_db_unilab())
 
 #
 # Apply week filter ----
@@ -69,7 +48,7 @@ case.data <- bind_rows(
 
 # First add DiseaseGroup to case.data
 # DiseaseGroup is equal to DiseaseName, except for Salmonella, which is one group
-# Each DiseaseGroup gets its own reporting delay distributions
+# Each DiseaseGroup gets its own reporting delay distribution
 case.data <- case.data %>%
 	mutate(
 		DiseaseGroup = case_when(
