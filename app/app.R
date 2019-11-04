@@ -23,6 +23,24 @@ week.seq <- outbreak.data %>%
 	pull(WeekFS) %>%
 	unique
 
+# Set names
+# Used for UI selection lists and checkboxes
+# short = short list of diseases and subtypes with fewer than 5 cases/year
+# all   = complete list of all diseases and subtypes
+# names.disease_subtype is tibble where SubType is nested within DiseaseName
+names.disease_subtype.short <- outbreak.data %>%
+	select(DiseaseName, SubType) %>%
+	distinct %>%
+	arrange(DiseaseName, SubType) %>%
+	nest(SubType = SubType)
+names.disease_subtype.all   <- case.data %>%
+	select(DiseaseName, SubType) %>%
+	distinct %>%
+	arrange(DiseaseName, SubType) %>%
+	nest(SubType = SubType)
+names.agecat <- case.data %>% pull(Agecat) %>% levels
+names.sex    <- case.data %>% pull(Sex)    %>% levels %>% "["(1:2)
+
 # Initial base map
 basemap <- leaflet() %>%
 	addTiles(
@@ -61,7 +79,7 @@ ui <- navbarPage(
 				selectInput(
 					inputId   = "sl_inp_disease",
 					label     = "Disease name",
-					choices   = outbreak.data %>% pull(DiseaseName) %>% unique %>% sort,
+					choices   = names.disease_subtype.short %>% pull(DiseaseName),
 					selected  = "Legionella",
 					selectize = FALSE),
 
@@ -204,18 +222,16 @@ ui <- navbarPage(
 							br(),
 							# Sex selection checkboxes
 							checkboxGroupInput(
-								inputId      = "ch_inp_sel_sex",
-								label        = NULL,
-								choiceNames  = list("Male", "Female"),
-								selected     = list("Male", "Female"),
-								choiceValues = list("Male", "Female")),
+								inputId  = "ch_inp_sel_sex",
+								label    = NULL,
+								choices  = names.sex,
+								selected = names.sex),
 							# Age selection checkboxes
 							checkboxGroupInput(
-								inputId      = "ch_inp_sel_age",
-								label        = NULL,
-								choiceNames  = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"),
-								selected     = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"),
-								choiceValues = list("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+")))),
+								inputId  = "ch_inp_sel_age",
+								label    = NULL,
+								choices  = names.agecat,
+								selected = names.agecat))),
 
 					# Bar
 					tags$hr(
@@ -471,13 +487,13 @@ server <- function(input, output, session) {
 
 			if (input$ch_inp_hidefew) {
 				# ch_inp_hidefew checked:
-				# For the selected, use current selection if present in outbreak.data,
+				# For the selected, use current selection if present in names.disease.short,
 				# if not, pre-select Legionella
 				updateSelectInput(
 					session = session,
 					inputId = "sl_inp_disease",
-					choices = outbreak.data %>% pull(DiseaseName) %>% unique %>% sort,
-					selected = if (input$sl_inp_disease %in% (outbreak.data %>% pull(DiseaseName) %>% unique)) {
+					choices = names.disease_subtype.short %>% pull(DiseaseName),
+					selected = if (input$sl_inp_disease %in% (names.disease_subtype.short %>% pull(DiseaseName))) {
 						input$sl_inp_disease
 					} else {
 						"Legionella"
@@ -488,7 +504,7 @@ server <- function(input, output, session) {
 				updateSelectInput(
 					session = session,
 					inputId = "sl_inp_disease",
-					choices = case.data %>% pull(DiseaseName) %>% unique %>% sort,
+					choices = names.disease_subtype.all %>% pull(DiseaseName),
 					selected = input$sl_inp_disease)
 			}
 		})
@@ -506,10 +522,17 @@ server <- function(input, output, session) {
 				# If there any subtypes, add them to the choices
 				if (input$ch_inp_hidefew) {
 					# ch_inp_hidefew checked:
-					outbreak.data %>% filter(DiseaseName == input$sl_inp_disease) %>% pull(SubType) %>% unique %>% sort
+					names.disease_subtype.short %>%
+						filter(DiseaseName == input$sl_inp_disease) %>%
+						pull(SubType) %>%
+						# is tibble -> unlist, unname vector and remove NA
+						unlist %>% unname %>% na.omit
 				} else {
 					# ch_inp_hidefew unchecked:
-					case.data %>% filter(DiseaseName == input$sl_inp_disease)%>% pull(SubType) %>% unique %>% sort
+					names.disease_subtype.all %>% filter(DiseaseName == input$sl_inp_disease) %>%
+						pull(SubType) %>%
+						# is tibble -> unlist, unname vector and remove NA
+						unlist %>% unname %>% na.omit
 				}))
 	})
 
@@ -566,11 +589,11 @@ server <- function(input, output, session) {
 			# Remove all filter settings
 			updateCheckboxGroupInput(
 				inputId  = "ch_inp_sel_age",
-				selected = dis$case.data %>% pull(Agecat) %>% levels,
+				selected = names.agecat,
 				session  = session)
 			updateCheckboxGroupInput(
 				inputId  = "ch_inp_sel_sex",
-				selected = c("Male", "Female"),
+				selected = names.sex,
 				session  = session)
 
 			# Remove all "Filter active" texts
@@ -859,7 +882,7 @@ server <- function(input, output, session) {
 				filter(Agecat %in% input$ch_inp_sel_age) %>%
 				filter(Sex    %in% input$ch_inp_sel_sex) %>%
 				# Only plot males and females
-				mutate(Sex = Sex %>% factor(levels = c("Male", "Female"))) %>%
+				mutate(Sex = Sex %>% factor(levels = names.sex)) %>%
 				# Aggregate cases by Agecat and Sex
 				group_by(Agecat, Sex, .drop = FALSE) %>%
 				summarize(Cases = n()) %>%
@@ -921,13 +944,13 @@ server <- function(input, output, session) {
 			updateCheckboxInput(
 				session = session,
 				inputId = "ch_inp_sel_age",
-				value = c("0 - 4", "5 - 14", "15 - 25", "25 - 64", "65+"))
+				value   = names.agecat)
 
 			# Check both sex
 			updateCheckboxInput(
 				session = session,
 				inputId = "ch_inp_sel_sex",
-				value = c("Male", "Female"))
+				value   = names.sex)
 
 			# Remove "Filter active" text
 			output$tx_out_flt_agesex <- renderText({})
