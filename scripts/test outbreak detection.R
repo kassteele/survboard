@@ -64,9 +64,10 @@ outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Measles")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Legionella")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Enteritidis" & is.na(SubType))
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Typhimurium" & is.na(SubType))
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Pertussis")
 
 # Do outbreak detection
-x <- detect_outbreaks(
+outbreak.data.sub <- detect_outbreaks(
 	outbreak.data = outbreak.data.sub,
 	delaydist.list = delaydist.list) %>%
 	# Add fifty shades of colour coding
@@ -76,8 +77,9 @@ x <- detect_outbreaks(
 			right = FALSE, include.lowest = TRUE, labels = FALSE)])
 
 # Plot
-with(x, {
+with(outbreak.data.sub, {
 	plot(WeekFS, Cases, col = Color, lwd = 3, type = "h")
 	lines(WeekFS, mu.baseline)
 	rug(WeekFS[State == 2])
 })
+
