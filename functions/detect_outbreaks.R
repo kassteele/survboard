@@ -72,7 +72,7 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 		# Calculate the forward- and backward probabilities
 		# Use forwardback.dthmm function from HMM package
 		# This returns n x m matrices log(alpha) and log(beta) and log-likelihood LL
-		prob.fw <- forwardback.dthmm(Pi = Pi, delta = delta, prob = prob.obs)
+		prob.fw <- forwardback(Pi = Pi, delta = delta, prob = prob.obs)
 
 		# Convergence reached?
 		# If so, break the iteration loop

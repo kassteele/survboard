@@ -5,7 +5,6 @@
 # Load packages
 library(parallel)
 library(mgcv)
-library(HiddenMarkov)
 library(tidyverse)
 
 # Source functions
