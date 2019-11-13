@@ -15,15 +15,23 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 	#
 
 	# Settings
-	n <- length(week.seq) # Length of the time series
-	m <- 2                # Number of states: baseline and outbreak state
+	n <- nrow(outbreak.data) # Length of the time series
+	# m <- 2                   # Number of states: baseline and outbreak state
+	m <- 3                   # Number of states: baseline and outbreak state
 
 	# Initial distribution delta of Markov Chain at t = 0 and transition probability matrix Pi
-	delta <- c(1, 0)
-	Pi <- matrix(c(0.99, 0.01, 0.20, 0.80), ncol = m, byrow = TRUE)
+	# delta <- c(1, 0)
+	# Pi <- matrix(c(0.99, 0.01, 0.20, 0.80), ncol = m, byrow = TRUE)
+	delta <- c(1, 0, 0)
+	Pi <- matrix(c(
+		0.99, 0.01, 0.00,
+		0.10, 0.80, 0.10,
+		0.00, 0.20, 0.80),
+		nrow = 3, byrow = TRUE)
 
 	# Initial log(RR) of outbreaks state vs. baseline state
-	beta <- log(2)
+	# beta <- log(2)
+	beta <- log(c(2, 4))
 
 	# Add further things to outbreak.data
 	outbreak.data <- outbreak.data %>%
@@ -38,7 +46,8 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 			r = delaydist.list[[DiseaseGroup[1]]](max(t) - t),
 			# Set initial state probabilities to c(1, 0), for each week
 			# Hence, u is a list column with dbl [2]
-			u = list(c(1, 0)))
+			# u = list(c(1, 0)))
+			u = list(c(1, 0, 0)))
 
 	# Fit log-baseline eta
 	fit.baseline <- fit_baseline_NegBin(outbreak.data)
@@ -78,7 +87,7 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 		# If so, break the iteration loop
 		LL <- prob.fw$LL
 		cat("Iteration", iter, "| Log-Likelihood:", LL, "\n")
-		#if (abs((oldLL - LL)/LL) < 1e-7 | LL < oldLL) break
+		#if (abs((oldLL - LL)/LL) < 1e-5 | LL < oldLL) break
 		if (abs((oldLL - LL)/LL) < 1e-5) break
 		oldLL <- LL
 
@@ -120,7 +129,7 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 			# Parameter to optimize
 			par = beta,
 			# Data that is fixed during the optimization
-			u           = outbreak.data$u %>% sapply(FUN = `[`, 1:2) %>% t,
+			u           = outbreak.data$u %>% sapply(FUN = `[`, 1:m) %>% t,
 			x           = outbreak.data$Cases,
 			mu.baseline = outbreak.data$mu.baseline,
 			theta       = theta,
@@ -139,8 +148,8 @@ detect_outbreaks <- function(outbreak.data, delaydist.list) {
 		mutate(
 			# Do global decoding of underlying hidden Markov state at each time point (Viterbi algorithm)
 			State = viterbi(x = Cases, Pi = Pi, delta = delta, prob = prob.obs),
-			# Local outbreak probability is u[, 2]
-			p.outbreak = u %>% sapply(FUN = `[`, 2) %>%
+			# Local outbreak probability is u[, 2:m]
+			p.outbreak = u %>% sapply(FUN = `[`, 2:m) %>% colSums %>%
 				# Be sure the probabilities are between 0 and 1
 				# This is a machine precision issue...
 				# We need this avoid NA's in the colouring afterwards
