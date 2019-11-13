@@ -13,17 +13,13 @@
 
 fit_baseline_NegBin <- function(outbreak.data) {
 
-	# Number of basis functions
-	kt      <- nrow(outbreak.data) %>% "/"(1.25*52.17857) %>% max(., 3) %>% round
-	kt.seas <- 6
-
 	# Fit GAM
 	fit <- gam(
-		formula = Cases ~ s(t, k = kt, bs = "cs") + s(t.seas, bs = "cc", k = kt.seas),
+		formula = Cases ~ s(t, bs = "ps", k = 4, m = c(2, 1)) + s(t.seas, bs = "cp", k = 6, m = c(2, 2)),
 		knots = list(t.seas = c(0, 52.17857)),
 		offset = log(r),
 		weights = u %>% sapply(FUN = `[`, 1), # u[, 1]
-		family = "nb",
+		family = nb,
 		data = outbreak.data)
 
 	# Return output
