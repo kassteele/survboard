@@ -3,10 +3,8 @@
 #
 
 # Load packages
-library(parallel)
 library(splines)
 library(mgcv)
-library(HiddenMarkov)
 library(tidyverse)
 
 # Source functions
@@ -40,7 +38,7 @@ outbreak.data <- outbreak.data %>%
 	mutate(
 		mu.baseline = mean(Cases),
 		p.outbreak  = 0,
-		State       = 1L)
+		State       = 1L) %>%
 	# Ungroup
 	ungroup()
 
@@ -65,6 +63,8 @@ outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Legionella")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Enteritidis" & is.na(SubType))
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Typhimurium" & is.na(SubType))
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Pertussis")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella 1,4,5,12:i:-")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Infantis")
 
 # Do outbreak detection
 outbreak.data.sub <- detect_outbreaks(
@@ -80,6 +80,9 @@ outbreak.data.sub <- detect_outbreaks(
 with(outbreak.data.sub, {
 	plot(WeekFS, Cases, col = Color, lwd = 3, type = "h")
 	lines(WeekFS, mu.baseline)
-	rug(WeekFS[State == 2])
+	lines(WeekFS, mu.baseline*exp(beta.est[1]))
+	lines(WeekFS, mu.baseline*exp(beta.est[2]))
+	rug(WeekFS[State == 2], col = "yellow")
+	rug(WeekFS[State == 3], col = "red")
 })
 
