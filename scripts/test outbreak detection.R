@@ -26,22 +26,6 @@ list.files(path = "data", full.names = TRUE, recursive = TRUE) %>%
 	str_subset(pattern = ".Rdata") %>%
 	walk(load, envir = .GlobalEnv)
 
-# Replace estimated outbreak characteristics by the defaults
-# as in the prepare disease data scripts
-outbreak.data <- outbreak.data %>%
-	# Group by DiseaseName_SubType
-	group_by(DiseaseName_SubType) %>%
-	# In outbreak.data, add outbreak characteristics by DiseaseName_SubType
-	# - mu.baseline: number of cases/week. Initially the overall mean for each week
-	# - p.outbreak:  outbreak probability. Initially 0 for each week
-	# - State:       outbreak state, 1 = no outbreak, 2 = outbreak. Initially 1 for each week
-	mutate(
-		mu.baseline = mean(Cases),
-		p.outbreak  = 0,
-		State       = 1L) %>%
-	# Ungroup
-	ungroup()
-
 # Create delaydist.list
 delaydist.list <- case.data %>%
 	split(f = .$DiseaseGroup) %>%
@@ -54,17 +38,20 @@ delaydist.list <- case.data %>%
 #
 
 # Filter outbreak.data
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Enteritidis" & is.na(SubType))
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Typhimurium" & is.na(SubType))
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Bovismorbificans")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Unknown")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Napoli")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Ohio")
-outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Measles")
-outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Legionella")
-outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Enteritidis" & is.na(SubType))
-outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Typhimurium" & is.na(SubType))
-outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Pertussis")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella 1,4,5,12:i:-")
 outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Salmonella Infantis")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Measles")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Legionella")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Pertussis")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Mumps")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Gonorrhoea")
+outbreak.data.sub <- outbreak.data %>% filter(DiseaseName == "Listeriosis")
 
 # Do outbreak detection
 outbreak.data.sub <- detect_outbreaks(
@@ -80,8 +67,8 @@ outbreak.data.sub <- detect_outbreaks(
 with(outbreak.data.sub, {
 	plot(WeekFS, Cases, col = Color, lwd = 3, type = "h")
 	lines(WeekFS, mu.baseline)
-	lines(WeekFS, mu.baseline*exp(beta.est[1]))
-	lines(WeekFS, mu.baseline*exp(beta.est[2]))
+	# lines(WeekFS, mu.baseline*exp(beta.est[1]))
+	# lines(WeekFS, mu.baseline*exp(beta.est[2]))
 	rug(WeekFS[State == 2], col = "yellow")
 	rug(WeekFS[State == 3], col = "red")
 })
