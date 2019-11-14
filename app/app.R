@@ -75,6 +75,15 @@ ui <- navbarPage(
 			sidebarPanel(
 				width = 2,
 
+				# Info button
+				div(
+					style = "display:inline-block; width:100%; text-align:right;",
+					actionButton(
+						inputId = "ab_inp_info_explore",
+						label   = "",
+						icon    = icon("info-circle"),
+						style   = "width:24px; height:24px; padding:0px; font-size:100%")),
+
 				# Disease selection
 				selectInput(
 					inputId   = "sl_inp_disease",
@@ -126,6 +135,12 @@ ui <- navbarPage(
 						label   = "Reset",
 						icon    = icon("undo"),
 						style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+					# Info button
+					actionButton(
+						inputId = "ab_inp_info_time",
+						label   = "",
+						icon    = icon("info-circle"),
+						style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 					# Filter active text
 					textOutput(
 						outputId = "tx_out_flt_time",
@@ -166,6 +181,12 @@ ui <- navbarPage(
 						label   = "",
 						icon    = icon("circle"),
 						style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+					# Info button
+					actionButton(
+						inputId = "ab_inp_info_map",
+						label   = "",
+						icon    = icon("info-circle"),
+						style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 					# Filter active text
 					textOutput(
 						outputId = "tx_out_flt_map",
@@ -201,6 +222,12 @@ ui <- navbarPage(
 								label   = "Reset",
 								icon    = icon("undo"),
 								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Info button
+							actionButton(
+								inputId = "ab_inp_info_agesex",
+								label   = "",
+								icon    = icon("info-circle"),
+								style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 							# Filter active text
 							textOutput(
 								outputId = "tx_out_flt_agesex",
@@ -263,6 +290,12 @@ ui <- navbarPage(
 								label   = "Sort",
 								icon    = icon("sort"),
 								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Info button
+							actionButton(
+								inputId = "ab_inp_info_cat",
+								label   = "",
+								icon    = icon("info-circle"),
+								style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 							# Filter active text
 							textOutput(
 								outputId = "tx_out_flt_cat1",
@@ -297,6 +330,12 @@ ui <- navbarPage(
 								label   = "Sort",
 								icon    = icon("sort"),
 								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Info button
+							actionButton(
+								inputId = "ab_inp_info_cat",
+								label   = "",
+								icon    = icon("info-circle"),
+								style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 							# Filter active text
 							textOutput(
 								outputId = "tx_out_flt_cat2",
@@ -331,6 +370,12 @@ ui <- navbarPage(
 								label   = "Sort",
 								icon    = icon("sort"),
 								style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+							# Info button
+							actionButton(
+								inputId = "ab_inp_info_cat",
+								label   = "",
+								icon    = icon("info-circle"),
+								style   = "width:24px; height:24px; padding:0px; font-size:100%"),
 							# Filter active text
 							textOutput(
 								outputId = "tx_out_flt_cat3",
@@ -357,6 +402,15 @@ ui <- navbarPage(
 			# Sidebar
 			sidebarPanel(
 				width = 2,
+
+				# Info button
+				div(
+					style = "display:inline-block; width:100%; text-align:right;",
+					actionButton(
+						inputId = "ab_inp_info_signals",
+						label   = "",
+						icon    = icon("info-circle"),
+						style   = "width:24px; height:24px; padding:0px; font-size:100%")),
 
 				# Week selection
 				dateInput(
@@ -535,6 +589,26 @@ server <- function(input, output, session) {
 						unlist %>% unname %>% na.omit
 				}))
 	})
+
+	# When ab_inp_info_explore is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_explore,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Explore tab",
+				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op Legionella",
+					"Na selectie zullen de grafieken updaten"),
+				p("Default worden alle ziektes/subtypes met gemiddeld minder dan 5 gevallen per jaar niet getoond.
+					 Je krijgt deze wel te zien door vakje uit te vinken.
+           N.B. op deze ziektes/subtypes heeft geen automatische uitbraakdetectie plaatsgevonden"),
+				p("Door bij een grafiek op 'Filter' te klikken worden alle andere grafieken aangepast aan de huidige 'view'.
+					 Met 'Reset' wordt het filter ongedaan gemaakt")
+				))
+		})
 
 	#
 	# Initital settings ----
@@ -768,6 +842,30 @@ server <- function(input, output, session) {
 
 			# Remove "Filter active" text
 			output$tx_out_flt_time <- renderText({})
+		})
+
+	# When ab_inp_info_time is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_time,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Epicurve",
+				p("Deze grafiek geeft het aantal gemelde ziektegevallen per week weer. Gemelde ziektegevallen bestaan zowel
+					uit bevestigde als voorlopige meldingen."),
+				p("De getrokken lijn is de 'baseline'. Dit is  het verwachtte aantal gevallen voor de betreffende week."),
+				p("De kleur van de balken geeft de kans op een afwijking van de baseline aan: groen is een lage kans,
+					 paars is een hoge kans op een 'uitbraak'."),
+				p("Inzoomen kan op drie manieren:"),
+				p("1. In de onderste grafiek: Sleep de witte balkjes aan de linker- en rechterkant naar het begin- en eindpunt
+           van de gewenste periode.", br(),
+					"2. In de bovenste grafiek: Selecteer met de muis de gewenste periode", br(),
+					"3. Klik op de sneltoetsen bovenaan de grafiek (3 mo, 6 mo, 1 yr, all) om in te zoomen op de laatste 3 maanden,
+           6 maanden, of jaar")
+			))
 		})
 
 	#
