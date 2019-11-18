@@ -27,7 +27,15 @@ read_db_unilab <- function() {
 	# Connect to database
 	con <- dbConnect(
 		drv = dbDriver("Oracle"),
-		dbname = "(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=unilabdbl01-ext-p.rivm.nl)(PORT=1521))(CONNECT_DATA=(SID=uni64p)))",
+		dbname = "
+			(DESCRIPTION =
+   			(ADDRESS =
+					(PROTOCOL = TCP)
+					(HOST = rivm-ulabdb-l02p.rivm.ssc-campus.nl)
+					(PORT = 1521))
+				(CONNECT_DATA =
+					(SERVER = DEDICATED)
+					(SERVICE_NAME = unilbp01)))",
 		username = credentials["Unilab", "username"],
 		password = credentials["Unilab", "password"])
 
