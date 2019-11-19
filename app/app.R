@@ -14,8 +14,8 @@ library(leaflet)
 #
 
 # Load case.data and outbreak.data
-load(file = "../data/case_data.Rdata")
-load(file = "../data/outbreak_data.Rdata")
+case.data     <- readRDS(file = "../data/case_data.rds")
+outbreak.data <- readRDS(file = "../data/outbreak_data.rds")
 
 # Week sequence of the whole period
 # Used for time range
@@ -49,6 +49,12 @@ basemap <- leaflet() %>%
 		lng1 = 3.5,  lng2 =  7.1,
 		lat1 = 50.6, lat2 = 53.6)
 
+# Gebruikersregelement render Rmarkdown -> HTML
+rmarkdown::render(
+	input      = "../documents/Gebruikersreglement.Rmd",
+	output_dir = "www",
+	quiet      = TRUE)
+
 #
 # User interface ----
 #
@@ -57,7 +63,7 @@ basemap <- leaflet() %>%
 # Add id to determine which tab is currently active
 ui <- navbarPage(
 	theme = shinytheme("flatly"),
-	title = "Surveillance Dashboard",
+	title = "EPI Surveillance Dashboard",
 	id = "dashboard",
 
 	#
@@ -517,7 +523,46 @@ ui <- navbarPage(
 					height = "850px"))
 
 		) # End sidebarLayout
-	) # End tabPanel Signals
+	), # End tabPanel Signals
+
+	# #
+	# # Table tab ----
+	# #
+	#
+	# tabPanel(
+	# 	title = "Table",
+	# 	icon  = icon("table")),
+	#
+	# #
+	# # Report tab ----
+	# #
+	#
+	# tabPanel(
+	# 	title = "Report",
+	# 	icon  = icon("file-alt")),
+
+	#
+	# About tab ----
+	#
+
+	tabPanel(
+		title = "About",
+		icon  = icon("question"),
+
+		# fluid layout
+		fluidPage(
+
+			# Embed Gebruikersregelement HTML
+			# File should be www directory
+			tags$iframe(
+				src         = "Gebruikersreglement.html",
+				width       = "100%",
+				height      = "850px",
+				frameBorder = "0")
+
+		) # End fluidPage
+	) # End tabPanel About
+
 ) # End navbarPage
 
 #
@@ -600,14 +645,18 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Explore tab",
-				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op Legionella",
-					"Na selectie zullen de grafieken updaten"),
+				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op Legionella.",
+					"Na selectie zullen de grafieken updaten."),
 				p("Default worden alle ziektes/subtypes met gemiddeld minder dan 5 gevallen per jaar niet getoond.
 					 Je krijgt deze wel te zien door vakje uit te vinken.
-           N.B. op deze ziektes/subtypes heeft geen automatische uitbraakdetectie plaatsgevonden"),
-				p("Door bij een grafiek op 'Filter' te klikken worden alle andere grafieken aangepast aan de huidige 'view'.
-					 Met 'Reset' wordt het filter ongedaan gemaakt")
-				))
+           N.B. op deze ziektes/subtypes heeft geen automatische uitbraakdetectie plaatsgevonden."),
+				p("De getoonde ziektegevallen bestaan zowel uit bevestigde als voorlopige meldingen."),
+				p("Door bij een grafiek op de 'Filter' knop te klikken worden alle andere grafieken aangepast aan de huidige view.
+					 Met 'Reset' wordt het filter ongedaan gemaakt."),
+				p("Wanneer met de muis over een grafiek bewogen wordt, verschijnen er iconen in de rechterbovenhoek.
+					 Hiermee is het bijvoorbeeld mogelijk om de assen te resetten (home) of de gemaakte grafiek als
+					 afbeelding op te slaan (fototoestel).")
+			))
 		})
 
 	#
@@ -854,8 +903,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Epicurve",
-				p("Deze grafiek geeft het aantal gemelde ziektegevallen per week weer. Gemelde ziektegevallen bestaan zowel
-					uit bevestigde als voorlopige meldingen."),
+				p("Deze grafiek geeft het aantal gemelde ziektegevallen per week weer."),
 				p("De getrokken lijn is de 'baseline'. Dit is  het verwachtte aantal gevallen voor de betreffende week."),
 				p("De kleur van de balken geeft de kans op een afwijking van de baseline aan: groen is een lage kans,
 					 paars is een hoge kans op een 'uitbraak'."),
@@ -965,6 +1013,25 @@ server <- function(input, output, session) {
 			dis$rad <- newrad
 		})
 
+	# When ab_inp_info_map is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_map,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Kaart",
+				p("In deze kaart zijn het aantal gemelde ziektegevallen per viercijferige postcode (PC4) weergegeven."),
+				p("De grootte van de bolletjes geeft het aantal gevallen per PC4 weer. Dit komt ook in de pop-up tevoorschijn
+					 wanneer met de muis over de bolletjes wordt gegaan wordt."),
+				p("De bollen kunnen groter of kleiner gemaakt worden met twee bollenknoppen in de knoppenblak."),
+				p("Met het muisscrollwiel kun je in- en uitzoomen. Het gebied kan verschoven worden door op
+					 de linkermuisknop te klikken en de kaart te slepen.")
+			))
+		})
+
 	#
 	# Age and sex ----
 	#
@@ -1052,6 +1119,22 @@ server <- function(input, output, session) {
 
 			# Remove "Filter active" text
 			output$tx_out_flt_agesex <- renderText({})
+		})
+
+	# When ab_inp_info_agesex is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_agesex,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Leeftijd- en geslachtverdeling",
+				p("In deze grafiek is de verdeling van het aantal gemelde ziektegevallen over de leeftijdscategorieën
+					 en geslacht weergegeven."),
+				p("Met de keuzevakjes rechts kunnen bepaalde geslacht- of leeftijdscategorieën geselecteerd worden.")
+			))
 		})
 
 	#
@@ -1145,6 +1228,26 @@ server <- function(input, output, session) {
 	output$tb_out_cat1 = renderText({
 		dis$case.data$cat1desc[1] %>% replace_na("")
 	})
+
+	# When ab_inp_info_cat is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_cat,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Categorische variabelen",
+				p("In deze grafiek is de verdeling van het aantal gemelde ziektegevallen over de categorieën van een
+					 bepaalde variabele weergegeven."),
+				p("Met de tabbladen bovenin kan geswitcht worden tussen verschillende categorische variabelen."),
+				p("Default staan de categorieën gesorteerd op aantal. Met de 'Sort' knop kunnen de categorieën gesorteerd
+					 worden in alfabetische volgorde."),
+				p("Met de linkermuisknop kun je een selectievak trekken over een of meerdere aaneengesloten categorieën.
+					 Door de Shift toets ingedruk te houden kun je ook meerdere niet-aaneengesloten categorieën selecteren.")
+			))
+		})
 
 	#
 	# Category 2 ----
@@ -1377,6 +1480,27 @@ server <- function(input, output, session) {
 					showlegend = FALSE)
 		})
 
+	# When ab_inp_info_signals is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_signals,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Signals tab",
+				p("In deze grafiek wordt de uitbraakkans voor de verschillende infectieziekten of pathogenen in het dashboard in
+					 een bepaalde week weergegeven."),
+				p("De kans is gesorteerd van hoog naar laag. Bovenaan staat de ziekte/pathogeen met de hoogste kans in de
+					 geselecteerde week."),
+				p("Default staat deze grafiek ingesteld op de meest recente week om een actueel overzicht te hebben van relevante
+					 signalen. De week kan gewijzigd worden door met de knoppen -/+ 1 week, -/+ 4 weeks, -/+ 1 year."),
+				p("Met de sliders kun je filteren op het aantal weer te geven ziekten/pathogenen, gebaseerd op een minimaal aantal
+           gemelde gevallen in de laaste paar weken.")
+			))
+		})
+
 	# Floor selected date to week
 	observeEvent(
 		eventExpr = input$dt_inp_week,
@@ -1503,7 +1627,7 @@ server <- function(input, output, session) {
 	#
 	# 	})
 
-}
+} # End server
 
 # #
 # # Diagnostics app ----
