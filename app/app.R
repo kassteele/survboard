@@ -4,7 +4,6 @@
 
 # Load packages
 library(shiny)
-library(shinythemes)
 library(tidyverse)
 library(plotly)
 library(leaflet)
@@ -50,8 +49,9 @@ basemap <- leaflet() %>%
 		lat1 = 50.6, lat2 = 53.6)
 
 # Gebruikersregelement render Rmarkdown -> HTML
+# File must in the www directory in order to be opened by the app
 rmarkdown::render(
-	input      = "../documents/Gebruikersreglement.Rmd",
+	input      = "../documents/Gebruikersregelement.Rmd",
 	output_dir = "www",
 	quiet      = TRUE)
 
@@ -62,12 +62,142 @@ rmarkdown::render(
 # Create page with top level navigation bar
 # Add id to determine which tab is currently active
 ui <- navbarPage(
-	theme = shinytheme("flatly"),
+	theme = shinythemes::shinytheme("flatly"),
 	title = "EPI Surveillance Dashboard",
-	id = "dashboard",
+	id    = "active_tab",
 
 	#
-	# Explore tab ----
+	# Tab: Signals ----
+	#
+
+	tabPanel(
+		title = "Signals",
+		icon  = icon("bell"),
+
+		# Sidebar layout: sidebar + main panel
+		sidebarLayout(
+			# Sidebar
+			sidebarPanel(
+				width = 2,
+
+				# Info button
+				div(
+					style = "display:inline-block; width:100%; text-align:right;",
+					actionButton(
+						inputId = "ab_inp_info_signals",
+						label   = "",
+						icon    = icon("info-circle"),
+						style   = "width:24px; height:24px; padding:0px; font-size:100%")),
+
+				# Week selection
+				dateInput(
+					inputId = "dt_inp_week",
+					label   = "Week",
+					value   = week.seq %>% last(),
+					weekstart = 1),
+				# Plus/minus 1 week buttons
+				tags$p(
+					actionButton(
+						inputId = "ab_inp_m1w",
+						label   = NULL,
+						icon    = icon("minus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					actionButton(
+						inputId = "ab_inp_p1w",
+						label   = NULL,
+						icon    = icon("plus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					" 1 week"),
+				# Plus/minus 4 weeks buttons
+				tags$p(
+					actionButton(
+						inputId = "ab_inp_m4w",
+						label   = NULL,
+						icon    = icon("minus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					actionButton(
+						inputId = "ab_inp_p4w",
+						label   = NULL,
+						icon    = icon("plus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					" 4 weeks"),
+				# Plus/minus 52 weeks buttons
+				tags$p(
+					actionButton(
+						inputId = "ab_inp_m52w",
+						label   = NULL,
+						icon    = icon("minus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					actionButton(
+						inputId = "ab_inp_p52w",
+						label   = NULL,
+						icon    = icon("plus"),
+						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
+					" 52 weeks"),
+
+				# Bar
+				tags$hr(
+					style = "border-color: grey"),
+
+				# Refine output:
+				# Only show the top n signals with at least x cases in the past y weeks
+				"Only show the top",
+				sliderInput(
+					inputId = "sl_inp_top",
+					label   = NULL,
+					min     = 1, max = 30, value = 15, step = 1,
+					ticks   = FALSE),
+				"signals with at least",
+				sliderInput(
+					inputId = "sl_inp_cases",
+					label   = NULL,
+					min     = 0, max = 5, value = 2, step = 1,
+					ticks   = FALSE),
+				"cases in the last",
+				sliderInput(
+					inputId = "sl_inp_lastweeks",
+					label   = NULL,
+					min     = 1, max = 8, value = 4, step = 1,
+					ticks   = FALSE),
+				"weeks.",
+
+				# Bar
+				tags$hr(
+					style = "border-color: grey"),
+
+				# 	# Directly explore selected disease and subtype
+				# 	selectInput(
+				# 		inputId   = "sl_inp_diseasesubtype",
+				# 		label     = "Directly explore",
+				# 		choices   = "",
+				# 		selectize = FALSE),
+				# 	# Show button
+				# 	actionButton(
+				# 		inputId = "ab_inp_diseasesubtype",
+				# 		label   = "Show",
+				# 		icon    = icon("bar-chart"),
+				# 		style   = "width:60px; height:24px; padding:0px; font-size:80%"),
+				#
+
+				# Footer
+				tags$footer(
+					"Dashboard created by Jan van de Kassteele, Jeroen Albas & Loes Soetens",
+					style = "font-size: 10px; color: grey")),
+
+			# Main panel
+			mainPanel(
+				width = 10,
+
+				# Plot
+				plotlyOutput(
+					outputId = "pl_out_signals",
+					height = "850px"))
+
+		) # End sidebarLayout
+	), # End tabPanel Signals
+
+	#
+	# Tab: Explore ----
 	#
 
 	tabPanel(
@@ -273,7 +403,7 @@ ui <- navbarPage(
 					# Categories
 					tabsetPanel(
 
-						# Cat 1 ----
+						# Category 1 ----
 						# Tab title
 						tabPanel(
 							title = uiOutput(
@@ -313,7 +443,7 @@ ui <- navbarPage(
 								outputId = "pl_out_cat1",
 								height   = "450px")),
 
-						# Cat 2 ----
+						# Category 2 ----
 						tabPanel(
 							# Tab title
 							title = uiOutput(
@@ -353,7 +483,7 @@ ui <- navbarPage(
 								outputId = "pl_out_cat2",
 								height   = "450px")),
 
-						# Cat 3 ----
+						# Category 3 ----
 						tabPanel(
 							# Tab title
 							title = uiOutput(
@@ -395,138 +525,8 @@ ui <- navbarPage(
 		) # End sidebarLayout
 	), # End tabPanel Explore
 
-	#
-	# Signals tab ----
-	#
-
-	tabPanel(
-		title = "Signals",
-		icon  = icon("bell"),
-
-		# Sidebar layout: sidebar + main panel
-		sidebarLayout(
-			# Sidebar
-			sidebarPanel(
-				width = 2,
-
-				# Info button
-				div(
-					style = "display:inline-block; width:100%; text-align:right;",
-					actionButton(
-						inputId = "ab_inp_info_signals",
-						label   = "",
-						icon    = icon("info-circle"),
-						style   = "width:24px; height:24px; padding:0px; font-size:100%")),
-
-				# Week selection
-				dateInput(
-					inputId = "dt_inp_week",
-					label   = "Week",
-					value   = week.seq %>% last(),
-					weekstart = 1),
-				# Plus/minus 1 week buttons
-				tags$p(
-					actionButton(
-						inputId = "ab_inp_m1w",
-						label   = NULL,
-						icon    = icon("minus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					actionButton(
-						inputId = "ab_inp_p1w",
-						label   = NULL,
-						icon    = icon("plus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					" 1 week"),
-				# Plus/minus 4 weeks buttons
-				tags$p(
-					actionButton(
-						inputId = "ab_inp_m4w",
-						label   = NULL,
-						icon    = icon("minus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					actionButton(
-						inputId = "ab_inp_p4w",
-						label   = NULL,
-						icon    = icon("plus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					" 4 weeks"),
-				# Plus/minus 52 weeks buttons
-				tags$p(
-					actionButton(
-						inputId = "ab_inp_m52w",
-						label   = NULL,
-						icon    = icon("minus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					actionButton(
-						inputId = "ab_inp_p52w",
-						label   = NULL,
-						icon    = icon("plus"),
-						style   = "width:24px; height:24px; padding:0px; font-size:80%"),
-					" 52 weeks"),
-
-				# Bar
-				tags$hr(
-					style = "border-color: grey"),
-
-				# Refine output:
-				# Only show the top n signals with at least x cases in the past y weeks
-				"Only show the top",
-				sliderInput(
-					inputId = "sl_inp_top",
-					label   = NULL,
-					min     = 1, max = 30, value = 15, step = 1,
-					ticks   = FALSE),
-				"signals with at least",
-				sliderInput(
-					inputId = "sl_inp_cases",
-					label   = NULL,
-					min     = 0, max = 5, value = 2, step = 1,
-					ticks   = FALSE),
-				"cases in the last",
-				sliderInput(
-					inputId = "sl_inp_lastweeks",
-					label   = NULL,
-					min     = 1, max = 8, value = 4, step = 1,
-					ticks   = FALSE),
-				"weeks.",
-
-				# Bar
-				tags$hr(
-					style = "border-color: grey"),
-
-				# 	# Directly explore selected disease and subtype
-				# 	selectInput(
-				# 		inputId   = "sl_inp_diseasesubtype",
-				# 		label     = "Directly explore",
-				# 		choices   = "",
-				# 		selectize = FALSE),
-				# 	# Show button
-				# 	actionButton(
-				# 		inputId = "ab_inp_diseasesubtype",
-				# 		label   = "Show",
-				# 		icon    = icon("bar-chart"),
-				# 		style   = "width:60px; height:24px; padding:0px; font-size:80%"),
-				#
-
-				# Footer
-				tags$footer(
-					"Dashboard created by Jan van de Kassteele, Jeroen Albas & Loes Soetens",
-					style = "font-size: 10px; color: grey")),
-
-			# Main panel
-			mainPanel(
-				width = 10,
-
-				# Plot
-				plotlyOutput(
-					outputId = "pl_out_signals",
-					height = "850px"))
-
-		) # End sidebarLayout
-	), # End tabPanel Signals
-
 	# #
-	# # Table tab ----
+	# # Tab: Table ----
 	# #
 	#
 	# tabPanel(
@@ -534,7 +534,7 @@ ui <- navbarPage(
 	# 	icon  = icon("table")),
 	#
 	# #
-	# # Report tab ----
+	# # Tab: Report ----
 	# #
 	#
 	# tabPanel(
@@ -542,20 +542,20 @@ ui <- navbarPage(
 	# 	icon  = icon("file-alt")),
 
 	#
-	# About tab ----
+	# Tab: Regulations ----
 	#
 
 	tabPanel(
-		title = "About",
-		icon  = icon("question"),
+		title = "Regulations",
+		icon  = icon("user-check"),
 
 		# fluid layout
 		fluidPage(
 
 			# Embed Gebruikersregelement HTML
-			# File should be www directory
+			# File is in the www directory
 			tags$iframe(
-				src         = "Gebruikersreglement.html",
+				src         = "Gebruikersregelement.html",
 				width       = "100%",
 				height      = "850px",
 				frameBorder = "0")
@@ -570,6 +570,204 @@ ui <- navbarPage(
 #
 
 server <- function(input, output, session) {
+
+	#
+	# Tab: Signals ----
+	#
+
+	# Plot
+	output$pl_out_signals <- renderPlotly(
+		expr = {
+
+			# A high outbreak probability with 0 cases is not relevant
+			# Therefore, only show diseases with at least 2 cases in the past 4 weeks
+			disease.names <- outbreak.data %>%
+				filter(WeekFS %in% seq(
+					from = input$dt_inp_week - 7*(input$sl_inp_lastweeks - 1),
+					to   = input$dt_inp_week,
+					by   = "week")) %>%
+				group_by(DiseaseName_SubType) %>%
+				summarize(Cases = sum(Cases)) %>%
+				filter(Cases >= input$sl_inp_cases) %>%
+				pull(DiseaseName_SubType)
+
+			# Create plot.data from outbreak.data
+			plot.data <- outbreak.data %>%
+				# Filter outbreak.data on selected week and relevant diseases
+				filter(
+					WeekFS == input$dt_inp_week,
+					DiseaseName_SubType %in% disease.names) %>%
+				# Select top n based on p.outbreak
+				top_n(n = input$sl_inp_top, wt = p.outbreak) %>%
+				# Reorder by p.outbreak
+				mutate(DiseaseName_SubType = DiseaseName_SubType %>% fct_reorder(.x = p.outbreak))
+
+			# Plot
+			plot_ly(
+				data = plot.data,
+				source = "pl_out_signals") %>%
+				add_bars(
+					x = ~ p.outbreak %>% "*"(100) %>% round(digits = 1),
+					y = ~ DiseaseName_SubType,
+					marker = list(color = ~ Color)) %>%
+				layout(
+					bargap = 0.05,
+					xaxis = list(range = c(-1, 101), dtick = 10, title = "Outbreak probability (%)"),
+					yaxis = list(title = FALSE),
+					dragmode = "zoom",
+					showlegend = FALSE)
+		})
+
+	# When ab_inp_info_signals is pressed
+	observeEvent(
+		eventExpr = input$ab_inp_info_signals,
+		handlerExpr = {
+
+			# Show info text
+			showModal(modalDialog(
+				easyClose = TRUE,
+				footer    = NULL,
+				title     = "Signals tab",
+				p("In deze grafiek wordt de uitbraakkans voor de verschillende infectieziekten of pathogenen in het dashboard in
+					een bepaalde week weergegeven."),
+				p("De kans is gesorteerd van hoog naar laag. Bovenaan staat de ziekte/pathogeen met de hoogste kans in de
+					geselecteerde week."),
+				p("Default staat deze grafiek ingesteld op de meest recente week om een actueel overzicht te hebben van relevante
+					signalen. De week kan gewijzigd worden door met de knoppen -/+ 1 week, -/+ 4 weeks, -/+ 1 year."),
+				p("Met de sliders kun je filteren op het aantal weer te geven ziekten/pathogenen, gebaseerd op een minimaal aantal
+					gemelde gevallen in de laaste paar weken.")
+				))
+		})
+
+	# Floor selected date to week
+	observeEvent(
+		eventExpr = input$dt_inp_week,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week %>% cut(breaks = "week")))
+
+	# Date action buttons
+	# Minus or plus 1 week
+	observeEvent(
+		eventExpr = input$ab_inp_m1w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week - 7))
+	observeEvent(
+		eventExpr = input$ab_inp_p1w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week + 7))
+
+	# Minus or plus 4 weeks
+	observeEvent(
+		eventExpr = input$ab_inp_m4w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week - 28))
+	observeEvent(
+		eventExpr = input$ab_inp_p4w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week + 28))
+
+	# Minus or plus 52 weeks
+	observeEvent(
+		eventExpr = input$ab_inp_m52w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week - 364))
+	observeEvent(
+		eventExpr = input$ab_inp_p52w,
+		handlerExpr = updateDateInput(
+			session = session,
+			inputId = "dt_inp_week",
+			value = input$dt_inp_week + 364))
+
+	# # Directly explore selection
+	# # When DiseaseName_SubType in dis$plot.data updates,
+	# # then update the choices in sl_inp_diseasesubtype
+	# observe({
+	# 	updateSelectInput(
+	# 		session = session,
+	# 		inputId = "sl_inp_diseasesubtype",
+	# 		label   = "Directly explore",
+	# 		choices = dis$plot.data$DiseaseName_SubType %>% levels %>% rev)
+	# })
+	#
+	# observeEvent(
+	# 	eventExpr = input$ab_inp_diseasesubtype,
+	# 	handlerExpr = {
+	#
+	# 		# Make Explore tab active
+	# 		updateTabsetPanel(
+	# 			session = session,
+	# 			inputId = "dashboard",
+	# 			selected = "Explore")
+	#
+	# 		d <- dis$plot.data %>% filter(DiseaseName_SubType == input$sl_inp_diseasesubtype) %>% pull(DiseaseName)
+	# 		s <- dis$plot.data %>% filter(DiseaseName_SubType == input$sl_inp_diseasesubtype) %>% pull(SubType) %>% replace_na("")
+	#
+	# 		# First filter case.data on DiseaseName
+	# 		dis$case.data <- case.data %>%
+	# 			filter(DiseaseName == d)
+	#
+	# 		# Then filter dis$case.data on SubType,
+	# 		# but ONLY if input$sl_inp_subtype is been chosen (i.e. is not equal to "")
+	# 		# In this way, if input$sl_inp_subtype has not been chosen, SubType will be ignored
+	# 		if (s != "") {
+	# 			dis$case.data <- dis$case.data %>%
+	# 				filter(SubType == s)
+	# 		}
+	#
+	# 		# For outbreak.data, the above two-step filter operation can be done in one step,
+	# 		# because SubType = "" (NA in outbreak.data) has its own records in outbreak.data
+	# 		dis$outbreak.data <- outbreak.data %>%
+	# 			filter(
+	# 				DiseaseName                  == d,
+	# 				(SubType %>% replace_na("")) == s)
+	#
+	# 		# Initially, all records are selected in dis$case.data
+	# 		# i.e. no active filters
+	# 		dis$case.data <- dis$case.data %>%
+	# 			mutate(
+	# 				select.time   = TRUE,
+	# 				select.map    = TRUE,
+	# 				select.agesex = TRUE,
+	# 				select.cat1   = TRUE,
+	# 				select.cat2   = TRUE,
+	# 				select.cat3   = TRUE)
+	#
+	# 		# Set initial radius and step size for the circles on the map
+	# 		n <- dis$case.data %>%
+	# 			group_by(PC4_numbers) %>%
+	# 			summarize(Cases = n()) %>%
+	# 			pull(Cases) %>%
+	# 			mean
+	# 		dis$step <- 500/n
+	# 		dis$rad  <- 2*dis$step
+	#
+	# 		# Set inital sorting of categories 1-3 to TRUE
+	# 		dis$sort$cat1 <- TRUE
+	# 		dis$sort$cat2 <- TRUE
+	# 		dis$sort$cat3 <- TRUE
+	#
+	# 		# Plot initial base map
+	# 		# The rest of the map is added in the Map section
+	# 		# and is based on reactive values such as filter actions
+	# 		output$pl_out_map <- renderLeaflet(basemap)
+	#
+	# 	})
+
+	#
+	# Tab: Explore ----
+	#
 
 	#
 	# Disease selection ----
@@ -920,7 +1118,8 @@ server <- function(input, output, session) {
 	# Map ----
 	#
 
-	# When dis$case.data updates, the circle markers should be redrawn
+	# When dis$case.data updates or input$active_tab == "Explore, the circle markers should be (re)drawn
+	# (see https://github.com/rstudio/leaflet/issues/590)
 	# By using the leafletProxy() function, ONLY the circle markers are redrawn, not the entire map
 	# This preserves the map view
 	#
@@ -932,6 +1131,7 @@ server <- function(input, output, session) {
 	# Circles are of course redrawn after pressing the decrease/increase circle radius buttons
 	observeEvent(
 		eventExpr = c(
+			input$active_tab == "Explore",
 			dis$case.data,
 			input$ab_inp_rst_map,
 			input$ab_inp_dec_map,
@@ -1434,198 +1634,8 @@ server <- function(input, output, session) {
 	})
 
 	#
-	# Signals ----
+	# Tab: Table ----
 	#
-
-	# Plot
-	output$pl_out_signals <- renderPlotly(
-		expr = {
-
-			# A high outbreak probability with 0 cases is not relevant
-			# Therefore, only show diseases with at least 2 cases in the past 4 weeks
-			disease.names <- outbreak.data %>%
-				filter(WeekFS %in% seq(
-					from = input$dt_inp_week - 7*(input$sl_inp_lastweeks - 1),
-					to   = input$dt_inp_week,
-					by   = "week")) %>%
-				group_by(DiseaseName_SubType) %>%
-				summarize(Cases = sum(Cases)) %>%
-				filter(Cases >= input$sl_inp_cases) %>%
-				pull(DiseaseName_SubType)
-
-			# Create plot.data from outbreak.data
-			plot.data <- outbreak.data %>%
-				# Filter outbreak.data on selected week and relevant diseases
-				filter(
-					WeekFS == input$dt_inp_week,
-					DiseaseName_SubType %in% disease.names) %>%
-				# Select top n based on p.outbreak
-				top_n(n = input$sl_inp_top, wt = p.outbreak) %>%
-				# Reorder by p.outbreak
-				mutate(DiseaseName_SubType = DiseaseName_SubType %>% fct_reorder(.x = p.outbreak))
-
-			# Plot
-			plot_ly(
-				data = plot.data,
-				source = "pl_out_signals") %>%
-				add_bars(
-					x = ~ p.outbreak %>% "*"(100) %>% round(digits = 1),
-					y = ~ DiseaseName_SubType,
-					marker = list(color = ~ Color)) %>%
-				layout(
-					bargap = 0.05,
-					xaxis = list(range = c(-1, 101), dtick = 10, title = "Outbreak probability (%)"),
-					yaxis = list(title = FALSE),
-					dragmode = "zoom",
-					showlegend = FALSE)
-		})
-
-	# When ab_inp_info_signals is pressed
-	observeEvent(
-		eventExpr = input$ab_inp_info_signals,
-		handlerExpr = {
-
-			# Show info text
-			showModal(modalDialog(
-				easyClose = TRUE,
-				footer    = NULL,
-				title     = "Signals tab",
-				p("In deze grafiek wordt de uitbraakkans voor de verschillende infectieziekten of pathogenen in het dashboard in
-					 een bepaalde week weergegeven."),
-				p("De kans is gesorteerd van hoog naar laag. Bovenaan staat de ziekte/pathogeen met de hoogste kans in de
-					 geselecteerde week."),
-				p("Default staat deze grafiek ingesteld op de meest recente week om een actueel overzicht te hebben van relevante
-					 signalen. De week kan gewijzigd worden door met de knoppen -/+ 1 week, -/+ 4 weeks, -/+ 1 year."),
-				p("Met de sliders kun je filteren op het aantal weer te geven ziekten/pathogenen, gebaseerd op een minimaal aantal
-           gemelde gevallen in de laaste paar weken.")
-			))
-		})
-
-	# Floor selected date to week
-	observeEvent(
-		eventExpr = input$dt_inp_week,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week %>% cut(breaks = "week")))
-
-	# Date action buttons
-	# Minus or plus 1 week
-	observeEvent(
-		eventExpr = input$ab_inp_m1w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week - 7))
-	observeEvent(
-		eventExpr = input$ab_inp_p1w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week + 7))
-
-	# Minus or plus 4 weeks
-	observeEvent(
-		eventExpr = input$ab_inp_m4w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week - 28))
-	observeEvent(
-		eventExpr = input$ab_inp_p4w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week + 28))
-
-	# Minus or plus 52 weeks
-	observeEvent(
-		eventExpr = input$ab_inp_m52w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week - 364))
-	observeEvent(
-		eventExpr = input$ab_inp_p52w,
-		handlerExpr = updateDateInput(
-			session = session,
-			inputId = "dt_inp_week",
-			value = input$dt_inp_week + 364))
-
-	# # Directly explore selection
-	# # When DiseaseName_SubType in dis$plot.data updates,
-	# # then update the choices in sl_inp_diseasesubtype
-	# observe({
-	# 	updateSelectInput(
-	# 		session = session,
-	# 		inputId = "sl_inp_diseasesubtype",
-	# 		label   = "Directly explore",
-	# 		choices = dis$plot.data$DiseaseName_SubType %>% levels %>% rev)
-	# })
-	#
-	# observeEvent(
-	# 	eventExpr = input$ab_inp_diseasesubtype,
-	# 	handlerExpr = {
-	#
-	# 		# Make Explore tab active
-	# 		updateTabsetPanel(
-	# 			session = session,
-	# 			inputId = "dashboard",
-	# 			selected = "Explore")
-	#
-	# 		d <- dis$plot.data %>% filter(DiseaseName_SubType == input$sl_inp_diseasesubtype) %>% pull(DiseaseName)
-	# 		s <- dis$plot.data %>% filter(DiseaseName_SubType == input$sl_inp_diseasesubtype) %>% pull(SubType) %>% replace_na("")
-	#
-	# 		# First filter case.data on DiseaseName
-	# 		dis$case.data <- case.data %>%
-	# 			filter(DiseaseName == d)
-	#
-	# 		# Then filter dis$case.data on SubType,
-	# 		# but ONLY if input$sl_inp_subtype is been chosen (i.e. is not equal to "")
-	# 		# In this way, if input$sl_inp_subtype has not been chosen, SubType will be ignored
-	# 		if (s != "") {
-	# 			dis$case.data <- dis$case.data %>%
-	# 				filter(SubType == s)
-	# 		}
-	#
-	# 		# For outbreak.data, the above two-step filter operation can be done in one step,
-	# 		# because SubType = "" (NA in outbreak.data) has its own records in outbreak.data
-	# 		dis$outbreak.data <- outbreak.data %>%
-	# 			filter(
-	# 				DiseaseName                  == d,
-	# 				(SubType %>% replace_na("")) == s)
-	#
-	# 		# Initially, all records are selected in dis$case.data
-	# 		# i.e. no active filters
-	# 		dis$case.data <- dis$case.data %>%
-	# 			mutate(
-	# 				select.time   = TRUE,
-	# 				select.map    = TRUE,
-	# 				select.agesex = TRUE,
-	# 				select.cat1   = TRUE,
-	# 				select.cat2   = TRUE,
-	# 				select.cat3   = TRUE)
-	#
-	# 		# Set initial radius and step size for the circles on the map
-	# 		n <- dis$case.data %>%
-	# 			group_by(PC4_numbers) %>%
-	# 			summarize(Cases = n()) %>%
-	# 			pull(Cases) %>%
-	# 			mean
-	# 		dis$step <- 500/n
-	# 		dis$rad  <- 2*dis$step
-	#
-	# 		# Set inital sorting of categories 1-3 to TRUE
-	# 		dis$sort$cat1 <- TRUE
-	# 		dis$sort$cat2 <- TRUE
-	# 		dis$sort$cat3 <- TRUE
-	#
-	# 		# Plot initial base map
-	# 		# The rest of the map is added in the Map section
-	# 		# and is based on reactive values such as filter actions
-	# 		output$pl_out_map <- renderLeaflet(basemap)
-	#
-	# 	})
 
 } # End server
 
