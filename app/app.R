@@ -24,19 +24,29 @@ week.seq <- outbreak.data %>%
 
 # Set names
 # Used for UI selection lists and checkboxes
-# short = short list of diseases and subtypes with fewer than 5 cases/year
-# all   = complete list of all diseases and subtypes
+#
+# Disease names and subtypes:
 # names.disease_subtype is tibble where SubType is nested within DiseaseName
+# .short     = short list of disease names and subtypes with fewer than 5 cases/year
+# .all       = complete list of all diseases names and subtypes
+# .topsignal = disease name and subtype with highest outbreak probability last week,
+#              used for inital disease selection
 names.disease_subtype.short <- outbreak.data %>%
 	select(DiseaseName, SubType) %>%
 	distinct %>%
 	arrange(DiseaseName, SubType) %>%
 	nest(SubType = SubType)
-names.disease_subtype.all   <- case.data %>%
+names.disease_subtype.all <- case.data %>%
 	select(DiseaseName, SubType) %>%
 	distinct %>%
 	arrange(DiseaseName, SubType) %>%
 	nest(SubType = SubType)
+names.disease_subtype.topsignal <- outbreak.data %>%
+	filter(WeekFS == last(week.seq)) %>%
+	top_n(n = 1, wt = p.outbreak) %>%
+	select(DiseaseName, SubType) %>%
+	nest(SubType = SubType)
+# Names for agecat and sex:
 names.agecat <- case.data %>% pull(Agecat) %>% levels
 names.sex    <- case.data %>% pull(Sex)    %>% levels %>% "["(1:2)
 
@@ -225,7 +235,7 @@ ui <- navbarPage(
 					inputId   = "sl_inp_disease",
 					label     = "Disease name",
 					choices   = names.disease_subtype.short %>% pull(DiseaseName),
-					selected  = "Legionella",
+					selected  = names.disease_subtype.topsignal %>% pull(DiseaseName),
 					selectize = FALSE),
 
 				# Subtype selection
@@ -785,7 +795,7 @@ server <- function(input, output, session) {
 			if (input$ch_inp_hidefew) {
 				# ch_inp_hidefew checked:
 				# For the selected, use current selection if present in names.disease.short,
-				# if not, pre-select Legionella
+				# if not, pre-select the one with the highest outbreak probabilitiy
 				updateSelectInput(
 					session = session,
 					inputId = "sl_inp_disease",
@@ -793,7 +803,7 @@ server <- function(input, output, session) {
 					selected = if (input$sl_inp_disease %in% (names.disease_subtype.short %>% pull(DiseaseName))) {
 						input$sl_inp_disease
 					} else {
-						"Legionella"
+						names.disease_subtype.topsignal %>% pull(DiseaseName)
 					})
 			} else {
 				# ch_inp_hidefew unchecked:
@@ -843,8 +853,8 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Explore tab",
-				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op Legionella.",
-					"Na selectie zullen de grafieken updaten."),
+				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op het pathogeen
+					 met de hoogste uitbraakkans in de meest recente week. Na selectie zullen de grafieken updaten."),
 				p("Default worden alle ziektes/subtypes met gemiddeld minder dan 5 gevallen per jaar niet getoond.
 					 Je krijgt deze wel te zien door vakje uit te vinken.
            N.B. op deze ziektes/subtypes heeft geen automatische uitbraakdetectie plaatsgevonden."),
