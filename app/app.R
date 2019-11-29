@@ -7,6 +7,7 @@ library(shiny)
 library(tidyverse)
 library(plotly)
 library(leaflet)
+library(DT)
 
 #
 # Load data ----
@@ -201,7 +202,7 @@ ui <- navbarPage(
 				# Plot
 				plotlyOutput(
 					outputId = "pl_out_signals",
-					height = "850px"))
+					height   = "850px"))
 
 		) # End sidebarLayout
 	), # End tabPanel Signals
@@ -535,14 +536,25 @@ ui <- navbarPage(
 		) # End sidebarLayout
 	), # End tabPanel Explore
 
-	# #
-	# # Tab: Table ----
-	# #
 	#
-	# tabPanel(
-	# 	title = "Table",
-	# 	icon  = icon("table")),
+	# Tab: Table ----
 	#
+
+	tabPanel(
+		title = "Table",
+		icon  = icon("table"),
+
+	# Fluidpage layout
+		fluidPage(
+
+			# Table
+			dataTableOutput(
+				outputId = "out_table",
+				height   = "850px")
+
+		) # End Fluidpage layout
+	), # End tabPanel Table
+
 	# #
 	# # Tab: Report ----
 	# #
@@ -1128,20 +1140,18 @@ server <- function(input, output, session) {
 	# Map ----
 	#
 
-	# When dis$case.data updates or input$active_tab == "Explore, the circle markers should be (re)drawn
-	# (see https://github.com/rstudio/leaflet/issues/590)
-	# By using the leafletProxy() function, ONLY the circle markers are redrawn, not the entire map
+	# By using the leafletProxy() function, ONLY the circle markers are (re)drawn, not the entire map
 	# This preserves the map view
 	#
-	# Circles should also be redrawn after pressing the map reset button,
-	# because this action redraws the base map without the circles
-	# However, if dis$case.data was not updated (because no map filter was active),
-	# the circles are then added by an updated input$ab_inp_rst_map value
-	#
-	# Circles are of course redrawn after pressing the decrease/increase circle radius buttons
+	# Circle markers should be (re)drawen when:
+	# - Explore tab gets activated, see https://github.com/rstudio/leaflet/issues/590, use req() function
+	# - New disease gets selected, i.e. update of dis$case.data
+	# - After pressing the reset button. If dis$case.data was not updated because no map filter was active,
+	#   only the base map is redrawn, but not the circles. Adding input$ab_inp_rst_map does redraw the circles
+	# - After pressing the decrease/increase circle radius buttons, of course
 	observeEvent(
 		eventExpr = c(
-			input$active_tab == "Explore",
+			req(input$active_tab == "Explore"),
 			dis$case.data,
 			input$ab_inp_rst_map,
 			input$ab_inp_dec_map,
@@ -1646,6 +1656,58 @@ server <- function(input, output, session) {
 	#
 	# Tab: Table ----
 	#
+
+	# Table
+	output$out_table <- renderDataTable(expr = {
+
+		# Create table.data from dis$case.data
+		table.data <- dis$case.data %>%
+			# Apply filters
+			filter(select.time & select.map & select.age & select.sex & select.cat1 & select.cat2 & select.cat3) %>%
+			# Be sure the three categorical variables are factors
+			# This enables filtering on the categories
+			mutate(
+				cat1 = factor(cat1),
+				cat2 = factor(cat2),
+				cat3 = factor(cat3))
+
+		# Rename category 1-3 columns
+		# cat1 should be named cat1desc, etc.
+		# Only do this if cat1desc[1] is not NA, etc. This can't be done in a pipe
+		# For the use of !! and :=, see help(quasiquotation)
+		if (!is.na(table.data$cat1desc[1])) table.data <- table.data %>% rename(!!(.$cat1desc[1]) := cat1)
+		if (!is.na(table.data$cat2desc[1])) table.data <- table.data %>% rename(!!(.$cat2desc[1]) := cat2)
+		if (!is.na(table.data$cat2desc[1])) table.data <- table.data %>% rename(!!(.$cat3desc[1]) := cat3)
+
+		# We continue with the pipe
+		table.data <- table.data %>%
+			# Select relevant columns
+			# Drop the cat1desc, etc. and select.time, ect. columns
+			select(-x, -y, -DiseaseGroup, -ends_with("desc"), -starts_with("select")) %>%
+			# Drop columns where everything is NA or Unknown
+			select_if(function(x) {
+				# First make column a character, to prevent warnings
+				x <- as.character(x)
+				# Select if not all are missing or all unknown
+				!(all(is.na(x)) | all(x == "Unknown"))
+			}) %>%
+			# Arange table by WeekFS, descending
+			arrange(desc(WeekFS))
+
+		# Show table
+		datatable(
+			data     = table.data,
+			class    = "compact stripe row-border", # Set layout
+			filter   = "top", # Add column filters on top
+			rownames = FALSE, # Hide row names
+			options  = list(
+				autoWidth  = TRUE,       # Set auto column width, but
+				columnDefs = list(list( # Fix width during filtering
+					width   = "200px",
+					targets = "_all")),
+				pageLength = 20, # Set number of rows in view to 20
+				lengthMenu = c(10, 20, 50, 100, 200, 500, 1000))) # Number of rows in view
+	})
 
 } # End server
 
