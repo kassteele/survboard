@@ -30,8 +30,6 @@ week.seq <- outbreak.data %>%
 # names.disease_subtype is tibble where SubType is nested within DiseaseName
 # .short     = short list of disease names and subtypes with fewer than 5 cases/year
 # .all       = complete list of all diseases names and subtypes
-# .topsignal = disease name and subtype with highest outbreak probability last week,
-#              used for inital disease selection
 names.disease_subtype.short <- outbreak.data %>%
 	select(DiseaseName, SubType) %>%
 	distinct %>%
@@ -41,11 +39,6 @@ names.disease_subtype.all <- case.data %>%
 	select(DiseaseName, SubType) %>%
 	distinct %>%
 	arrange(DiseaseName, SubType) %>%
-	nest(SubType = SubType)
-names.disease_subtype.topsignal <- outbreak.data %>%
-	filter(WeekFS == last(week.seq)) %>%
-	top_n(n = 1, wt = p.outbreak) %>%
-	select(DiseaseName, SubType) %>%
 	nest(SubType = SubType)
 # Names for agecat and sex:
 names.agecat <- case.data %>% pull(Agecat) %>% levels
@@ -60,7 +53,7 @@ basemap <- leaflet() %>%
 		lat1 = 50.6, lat2 = 53.6)
 
 # Gebruikersregelement render Rmarkdown -> HTML
-# File must in the www directory in order to be opened by the app
+# HTML file is placed in the www directory in order to be opened by the app
 rmarkdown::render(
 	input      = "../documents/Gebruikersregelement.Rmd",
 	output_dir = "www",
@@ -236,7 +229,7 @@ ui <- navbarPage(
 					inputId   = "sl_inp_disease",
 					label     = "Disease name",
 					choices   = names.disease_subtype.short %>% pull(DiseaseName),
-					selected  = names.disease_subtype.topsignal %>% pull(DiseaseName),
+					selected  = "Legionella",
 					selectize = FALSE),
 
 				# Subtype selection
@@ -544,7 +537,7 @@ ui <- navbarPage(
 		title = "Table",
 		icon  = icon("table"),
 
-	# Fluidpage layout
+		# Fluidpage layout
 		fluidPage(
 
 			# Table
@@ -601,8 +594,9 @@ server <- function(input, output, session) {
 	output$pl_out_signals <- renderPlotly(
 		expr = {
 
-			# A high outbreak probability with 0 cases is not relevant
-			# Therefore, only show diseases with at least 2 cases in the past 4 weeks
+			# A high outbreak probability with 0 cases is not relevant. Therefore,
+			# only show diseases with at least input$sl_inp_cases cases
+			# in the past input$sl_inp_lastweeks weeks
 			disease.names <- outbreak.data %>%
 				filter(WeekFS %in% seq(
 					from = input$dt_inp_week - 7*(input$sl_inp_lastweeks - 1),
@@ -650,15 +644,8 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Signals tab",
-				p("In deze grafiek wordt de uitbraakkans voor de verschillende infectieziekten of pathogenen in het dashboard in
-					een bepaalde week weergegeven."),
-				p("De kans is gesorteerd van hoog naar laag. Bovenaan staat de ziekte/pathogeen met de hoogste kans in de
-					geselecteerde week."),
-				p("Default staat deze grafiek ingesteld op de meest recente week om een actueel overzicht te hebben van relevante
-					signalen. De week kan gewijzigd worden door met de knoppen -/+ 1 week, -/+ 4 weeks, -/+ 1 year."),
-				p("Met de sliders kun je filteren op het aantal weer te geven ziekten/pathogenen, gebaseerd op een minimaal aantal
-					gemelde gevallen in de laaste paar weken.")
-				))
+				includeMarkdown(path = "../documents/info_signals.md")
+			))
 		})
 
 	# Floor selected date to week
@@ -807,7 +794,7 @@ server <- function(input, output, session) {
 			if (input$ch_inp_hidefew) {
 				# ch_inp_hidefew checked:
 				# For the selected, use current selection if present in names.disease.short,
-				# if not, pre-select the one with the highest outbreak probabilitiy
+				# if not, pre-select Legionella
 				updateSelectInput(
 					session = session,
 					inputId = "sl_inp_disease",
@@ -815,7 +802,7 @@ server <- function(input, output, session) {
 					selected = if (input$sl_inp_disease %in% (names.disease_subtype.short %>% pull(DiseaseName))) {
 						input$sl_inp_disease
 					} else {
-						names.disease_subtype.topsignal %>% pull(DiseaseName)
+						"Legionella"
 					})
 			} else {
 				# ch_inp_hidefew unchecked:
@@ -865,17 +852,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Explore tab",
-				p("Selecteer hier een ziekte en, indien aanwezig, een subtype. Default staat de keuze op het pathogeen
-					 met de hoogste uitbraakkans in de meest recente week. Na selectie zullen de grafieken updaten."),
-				p("Default worden alle ziektes/subtypes met gemiddeld minder dan 5 gevallen per jaar niet getoond.
-					 Je krijgt deze wel te zien door vakje uit te vinken.
-           N.B. op deze ziektes/subtypes heeft geen automatische uitbraakdetectie plaatsgevonden."),
-				p("De getoonde ziektegevallen bestaan zowel uit bevestigde als voorlopige meldingen."),
-				p("Door bij een grafiek op de 'Filter' knop te klikken worden alle andere grafieken aangepast aan de huidige view.
-					 Met 'Reset' wordt het filter ongedaan gemaakt."),
-				p("Wanneer met de muis over een grafiek bewogen wordt, verschijnen er iconen in de rechterbovenhoek.
-					 Hiermee is het bijvoorbeeld mogelijk om de assen te resetten (home) of de gemaakte grafiek als
-					 afbeelding op te slaan (fototoestel).")
+				includeMarkdown(path = "../documents/info_explore.md")
 			))
 		})
 
@@ -1123,16 +1100,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Epicurve",
-				p("Deze grafiek geeft het aantal gemelde ziektegevallen per week weer."),
-				p("De getrokken lijn is de 'baseline'. Dit is  het verwachtte aantal gevallen voor de betreffende week."),
-				p("De kleur van de balken geeft de kans op een afwijking van de baseline aan: groen is een lage kans,
-					 paars is een hoge kans op een 'uitbraak'."),
-				p("Inzoomen kan op drie manieren:"),
-				p("1. In de onderste grafiek: Sleep de witte balkjes aan de linker- en rechterkant naar het begin- en eindpunt
-           van de gewenste periode.", br(),
-					"2. In de bovenste grafiek: Selecteer met de muis de gewenste periode", br(),
-					"3. Klik op de sneltoetsen bovenaan de grafiek (3 mo, 6 mo, 1 yr, all) om in te zoomen op de laatste 3 maanden,
-           6 maanden, of jaar")
+				includeMarkdown(path = "../documents/info_epicurve.md")
 			))
 		})
 
@@ -1243,12 +1211,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Kaart",
-				p("In deze kaart zijn het aantal gemelde ziektegevallen per viercijferige postcode (PC4) weergegeven."),
-				p("De grootte van de bolletjes geeft het aantal gevallen per PC4 weer. Dit komt ook in de pop-up tevoorschijn
-					 wanneer met de muis over de bolletjes wordt gegaan wordt."),
-				p("De bollen kunnen groter of kleiner gemaakt worden met twee bollenknoppen in de knoppenblak."),
-				p("Met het muisscrollwiel kun je in- en uitzoomen. Het gebied kan verschoven worden door op
-					 de linkermuisknop te klikken en de kaart te slepen.")
+				includeMarkdown(path = "../documents/info_map.md")
 			))
 		})
 
@@ -1351,9 +1314,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Leeftijd- en geslachtverdeling",
-				p("In deze grafiek is de verdeling van het aantal gemelde ziektegevallen over de leeftijdscategorieën
-					 en geslacht weergegeven."),
-				p("Met de keuzevakjes rechts kunnen bepaalde geslacht- of leeftijdscategorieën geselecteerd worden.")
+				includeMarkdown(path = "../documents/info_agesex.md")
 			))
 		})
 
@@ -1459,13 +1420,7 @@ server <- function(input, output, session) {
 				easyClose = TRUE,
 				footer    = NULL,
 				title     = "Categorische variabelen",
-				p("In deze grafiek is de verdeling van het aantal gemelde ziektegevallen over de categorieën van een
-					 bepaalde variabele weergegeven."),
-				p("Met de tabbladen bovenin kan geswitcht worden tussen verschillende categorische variabelen."),
-				p("Default staan de categorieën gesorteerd op aantal. Met de 'Sort' knop kunnen de categorieën gesorteerd
-					 worden in alfabetische volgorde."),
-				p("Met de linkermuisknop kun je een selectievak trekken over een of meerdere aaneengesloten categorieën.
-					 Door de Shift toets ingedruk te houden kun je ook meerdere niet-aaneengesloten categorieën selecteren.")
+				includeMarkdown(path = "../documents/info_categories.md")
 			))
 		})
 
