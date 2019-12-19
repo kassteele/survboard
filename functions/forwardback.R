@@ -1,4 +1,5 @@
 # Forward and backward probabilities of HMM
+# This function is based on HiddenMarkov::forwardback
 forwardback <- function (Pi, delta, prob) {
 	n <- nrow(prob)
 	m <- nrow(Pi)

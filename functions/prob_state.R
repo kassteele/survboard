@@ -1,4 +1,5 @@
 # State probabilities given the observations
+# This function is based on HiddenMarkov::Estep
 prob_state <- function(Pi, prob, fw) {
 	n <- nrow(prob)
 	m <- nrow(Pi)
