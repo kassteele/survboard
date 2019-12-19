@@ -1666,30 +1666,6 @@ server <- function(input, output, session) {
 
 } # End server
 
-# #
-# # Diagnostics app ----
-# #
-#
-# ui <- fluidPage(
-# 	verbatimTextOutput(outputId = "getwd"),
-# 	verbatimTextOutput(outputId = "path"),
-# 	tableOutput(outputId = "packages"))
-#
-# server <- function(input, output) {
-#
-# 	output$getwd <- renderText({
-# 		getwd()
-# 	})
-#
-# 	output$path <- renderText({
-# 		paste0(.libPaths(), collapse = "\n")
-# 	})
-#
-# 	output$packages <- renderTable({
-# 		installed.packages()[, 1:3]
-# 	})
-# }
-
 #
 # Run app ----
 #
