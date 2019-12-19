@@ -1023,18 +1023,23 @@ server <- function(input, output, session) {
 							buttons = list(
 								list(
 									step = "month",
+									count = 1,
+									label = "1m",
+									stepmode = "backward"),
+								list(
+									step = "month",
 									count = 3,
-									label = "3 mo",
+									label = "3m",
 									stepmode = "backward"),
 								list(
 									step = "month",
 									count = 6,
-									label = "6 mo",
+									label = "6m",
 									stepmode = "backward"),
 								list(
 									step = "year",
 									count = 1,
-									label = "1 yr",
+									label = "1y",
 									stepmode = "backward"),
 								list(
 									step = "all"))),
