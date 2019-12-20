@@ -1149,11 +1149,31 @@ server <- function(input, output, session) {
 				data = plot.data) %>%
 				clearShapes() %>%
 				addCircles(
+					#layerId = "circles",
 					lng = ~ x, lat = ~ y, radius = ~ radius,
 					color = "#a90061", opacity = 1, weight = 0.5,
 					fillColor = "#a90061", fillOpacity = 0.33,
 					label = ~ paste0(PC4_numbers, ": ", Cases))
 		})
+
+	# observe({
+	# 	if (is.null(input$pl_out_map_zoom)) return()
+	# 	print(input$pl_out_map_zoom)
+	# 	if (input$pl_out_map_zoom >= 12) {
+	# 		print("add shapes")
+	# 		leafletProxy(
+	# 			mapId = "pl_out_map") %>%
+	# 			addPolygons(
+	# 				data = pc4_regions.sf,
+	# 				color = "black", weight = 1,
+	# 				fill = FALSE)
+	# 	} else {
+	# 		print("remove shapes")
+	# 		leafletProxy(
+	# 			mapId = "pl_out_map") %>%
+	# 			clearShapes()
+	# 	}
+	# })
 
 	# When ab_inp_flt_map is pressed
 	observeEvent(
