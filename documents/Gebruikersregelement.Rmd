@@ -1,0 +1,73 @@
+---
+title: "Gebruikersreglement surveillance dashboard - Survboard"
+author: "EPI-SIS"
+date: "19 november 2019"
+output: 
+  html_document: 
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+## 1. Doel van het dashboard
+
+Het doel van het surveillance dashboard ‘Survboard’ is het genereren van een overzicht van relevante uitbraaksignalen van infectieziekten/pathogenen en het in staat stellen van het verkennen van surveillancegegevens en deze signalen in tijd, plaats en persoon middels een dashboard. Dit alles ten behoeve van het ondersteunen van de nationale infectieziektensurveillance taak.
+
+## 2. Eigenaar
+
+De eigenaar van het surveillance dashboard is het hoofd van de afdeling Signalering en Surveillance binnen het centrum Epidemiologie en Surveillance van Infectieziekten (Centrum EPI).
+
+## 3. Gebruikers
+
+Gebruikers van het surveillance dashboard zijn de surveillance aanspreekpunten binnen Centrum EPI, zoals gedocumenteerd in op de 
+[Wiki](http://wiki.rivm.nl/inwiki/bin/view/Epidemiologie+en+Surveillance+van+Infectieziekten/Aanspreekpunten){target="_blank"}.
+
+## 4. Toegang
+
+Alleen bovengenoemde gebruikers, centrum- en afdelingshoofden van het centrum EPI en ontwikkelaars/beheerders van het surveillance dashboard binnen Centrum EPI hebben toegang tot het dashboard. Door middel van beveiliging met een inlogscherm en wachtwoord is deze toegang beperkt. 
+
+## 5. Databronnen
+
+De volgende databronnen zijn gekoppeld om het dashboard te voeden:
+
+*	Meldingsplichtige infectieziekten: OSIRIS-AIZ
+*	Seksueel overdraagbare aandoeningen: SOAP
+*	Salmonella’s: LIMS
+
+Het dashboard wordt iedere week op maandagochtend om 6 uur 's ochtends geüpdatet.
+
+## 6. Uitbraakdetectie
+
+Het dashboard heeft een automatisch uitbraakdetectie algoritme. Dit algoritme wordt alleen toegepast op ziekten/pathogenen die gemiddeld meer vijf meldingen per jaar hebben of in het afgelopen jaar meer dan vijf meldingen hebben gehad. De uitbraakdetectie geeft een indicatie of er mogelijk iets aan de hand kan zijn. Een algoritme is nooit perfect en het algoritme moet nog gevalideerd worden. Hierdoor is het mogelijk dat er vals positieve of vals negatieve signalen gegenereerd worden. Verificatie van signalen door epidemiologen is hierdoor altijd noodzakelijk.
+
+Het algoritme werkt met een hidden Markov model. Dit model schat voor iedere week de kans dat de tijdreeks zich in een bepaalde staat bevindt. De werkelijke staat van de tijdreeks is onbekend, vandaar 'hidden'. De overgangskansen tussen en binnen de staten worden ook geschat. Deze overgangskansen zijn conditioneel op de staat van een week eerder, vandaar 'Markov'. In het huidige model zijn er twee staten mogelijk: de baseline staat en de uitbraakstaat. De kans op de uitbraakstaat wordt getoond in het dashboard met de onderstaande kleurcodering.
+
+```{r, echo = FALSE, out.width = "100%", fig.height = 0.7}
+par(
+	mar = c(1.5, 0.5, 0, 0.5),
+	mgp = c(2, 0.25, 0))
+image(
+  x = matrix(
+    data = seq(from = 0, to = 1, length = 101),
+    ncol = 1),
+  col = colorRampPalette(c("#275937", "#39870c", "#f9e11e", "#d52b1e", "#a90061"))(n = 101),
+  axes = FALSE)
+axis(
+  side = 1,
+  at = seq(from = 0, to = 1, by = 0.25),
+	cex.axis = 0.8,
+	tcl = -0.25,
+  lwd = 0,
+  lwd.ticks = 1)
+
+```
+
+Aan het aantal wekelijkse meldingen wordt een Negatief Binomiaal regressiemodel met log-link functie gefit. Zo kan het model omgaan met vele nullen en overdispersie in de wekelijkse aantallen. De fit wordt gewogen met gewichten die gelijk zijn aan de kans dat de tijdreeks zich in de baseline staat bevindt. Hoge uitschieters (potentiele uitbraken) krijgen daardoor minder gewicht.
+
+Het verwachte aantal meldingen in de baseline staat wordt ontbonden in een grootschalige trend en een cyclische seizoenscomponent. Beide componenten wordt gemodelleerd met P-splines. De hoeveelheid informatie in de data bepaalt daardoor het effectieve aantal parameters, waarmee overfitting wordt voorkomen. Het verwachte aantal meldingen in de uitbraakstaat wordt gemodelleerd met een multiplicatieve factor op het verwachte aantal meldingen in de baseline staat.
+
+Rapportagevertraging wordt in het model meegenomen in de offset term. Hier wordt de log van de cumulatieve proportie historische gerapporteerde gevallen voor gebruikt. Hiermee wordt het verwachte aantal meldingen in de baseline staat naar beneden gebogen naarmate we dichterbij het heden komen. Er vindt dus geen correctie(nowcasting) voor rapportagevertraging plaats. Op deze manier worden wel de grootschalige trend en het effect van de rapportagevertraging uit elkaar te getrokken.
+
+## 7. Gebruik van figuren
+
+Figuren of andere resultaten uit het surveillance dashboard mogen niet zonder toestemming van de eigenaar gepubliceerd worden in wetenschappelijke publicaties, rapporten of anderszins.

@@ -12,9 +12,8 @@
 .Rprofile
 .RData
 .Ruserdata
+app/www
 scripts/test_outbreak_detection.R
-app/www/
-documents/
 data/
 envs/
 logs/
