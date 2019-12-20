@@ -42,6 +42,7 @@ case.data <- bind_rows(
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_pertussis"),
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Hib_disease"),
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Tuberculosis"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Psittacosis"),
 	read_db_unilab())
 
 #
