@@ -43,6 +43,19 @@ case.data <- bind_rows(
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Hib_disease"),
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Tuberculosis"),
 	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Psittacosis"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_buiktyfus"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_hantavirus"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_HepatitisA"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_HepatitisBacuut"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_HepatitisCacuut"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_leptospirosis"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_ParatyfusA"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_ParatyfusB"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_ParatyfusC"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Qfever"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Rubella"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_Shigellosis"),
+	read_db_osiris(database = "OWHDM_AIZ", selection = "EPI.vw_SD_meningokokken"),
 	read_db_unilab())
 
 #
@@ -210,3 +223,9 @@ outbreak.data <- mclapply(
 
 saveRDS(case.data,     file = "data/case_data.rds")
 saveRDS(outbreak.data, file = "data/outbreak_data.rds")
+
+# Update time stamp of app.R to resolve data cache issue on Shiny Server
+# https://community.rstudio.com/t/how-update-data-cache-for-shiny-server/27535
+Sys.setFileTime(
+	path = "app/app.R",
+	time = Sys.time())
