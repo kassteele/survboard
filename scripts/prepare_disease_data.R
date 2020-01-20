@@ -73,11 +73,11 @@ case.data <- case.data %>%
 
 # The command below gives an overview of starting and ending weeks per DiseaseGroup
 # Not used in the dashboard, can be commented out
-case.data %>%
-	group_by(DiseaseGroup) %>%
-	summarize(
-		WeekFS.from = WeekFS %>% min,
-		WeekFS.to   = WeekFS %>% max)
+# case.data %>%
+# 	group_by(DiseaseGroup) %>%
+# 	summarize(
+# 		WeekFS.from = WeekFS %>% min,
+# 		WeekFS.to   = WeekFS %>% max)
 
 # Set week sequence
 # This is a vector of weeks, starting on mondays
@@ -86,10 +86,10 @@ case.data %>%
 # Start: The week 8 years back from last week
 # End:   The week BEFORE the current week, i.e. last week, because the current week is not complete yet
 #        This incompleteness would lead to an undisered day-dependend reporting delay distribution
-last.week <- (Sys.Date() - 7) %>% cut(breaks = "week") %>% as.Date
+current.week <- Sys.Date() %>% cut(breaks = "week") %>% as.Date
 week.seq <- seq(
-	from = (last.week - 365.25*8) %>% cut(breaks = "week") %>% as.Date,
-	to   =  last.week,
+	from = (current.week - 365.25*8) %>% cut(breaks = "week") %>% as.Date,
+	to   =  current.week,
 	by   = "week")
 
 # Apply week filter to case.data
@@ -174,7 +174,7 @@ rm(outbreak.data_DiseaseName, outbreak.data_SubType)
 
 outbreak.data <- outbreak.data %>%
 	# Add past last.year indicator: TRUE = last year (52 weeks), FALSE = before that
-	mutate(last.year = (last.week - WeekFS) %>% as.numeric %>% "/"(7) < 52) %>%
+	mutate(last.year = (current.week - WeekFS) %>% as.numeric %>% "/"(7) < 52) %>%
 	# Group by DiseaseName_SubType
 	group_by(DiseaseName_SubType) %>%
 	# Initial baseline (cases/week) per DiseaseName_SubType
