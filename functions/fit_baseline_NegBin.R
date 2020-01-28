@@ -15,9 +15,8 @@ fit_baseline_NegBin <- function(outbreak.data) {
 
 	# Fit GAM
 	fit <- gam(
-		formula = Cases ~ s(t, bs = "ps", k = 4, m = c(2, 1)) + s(t.seas, bs = "cp", k = 6, m = c(2, 2)),
+		formula = Cases ~ s(t, bs = "ps", k = 4, m = c(2, 1)) + s(t.seas, bs = "cp", k = 6, m = c(2, 2)) + offset(log(r)),
 		knots = list(t.seas = c(0, 52.17857)),
-		offset = log(r),
 		weights = u %>% sapply(FUN = `[`, 1), # u[, 1]
 		family = nb,
 		data = outbreak.data)
