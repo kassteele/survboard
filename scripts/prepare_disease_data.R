@@ -133,7 +133,9 @@ outbreak.data_DiseaseName <- case.data %>%
 	# Add DiseaseName_SubType (to be used in app). Here it is only DiseaseName
 	mutate(
 		SubType = NA_character_,
-		DiseaseName_SubType = DiseaseName)
+		DiseaseName_SubType = DiseaseName) %>%
+	# Ungroup
+	ungroup()
 
 # 2. Create outbreak.data for SubType
 outbreak.data_SubType <- case.data %>%
@@ -150,7 +152,9 @@ outbreak.data_SubType <- case.data %>%
 	left_join(case.data %>% distinct(SubType, DiseaseName, DiseaseGroup) %>% na.omit) %>%
 	# Add DiseaseName_SubType (to be used in app). Here it is DiseaseName PLUS SubType
 	mutate(
-		DiseaseName_SubType = str_c(DiseaseName, SubType, sep = " "))
+		DiseaseName_SubType = str_c(DiseaseName, SubType, sep = " ")) %>%
+	# Ungroup
+	ungroup()
 
 # Bind them together in outbreak.data
 outbreak.data <- bind_rows(
@@ -173,26 +177,27 @@ rm(outbreak.data_DiseaseName, outbreak.data_SubType)
 # Therefore, also perform outbreak detection on DiseaseName_SubType's with, on average, >= 5 cases/last year = 5/52 cases/week
 
 outbreak.data <- outbreak.data %>%
-	# Add past last.year indicator: TRUE = last year (52 weeks), FALSE = before that
-	mutate(last.year = (current.week - WeekFS) %>% as.numeric %>% "/"(7) < 52) %>%
+	mutate(
+		# Convert WeekFS back to Date class
+		WeekFS = WeekFS %>% as.Date) %>%
+		# # Add past last.year indicator: TRUE = last year (52 weeks), FALSE = before that
+		# last.year = (current.week - WeekFS) %>% as.numeric %>% "/"(7) < 52) %>%
 	# Group by DiseaseName_SubType
 	group_by(DiseaseName_SubType) %>%
 	# Initial baseline (cases/week) per DiseaseName_SubType
 	mutate(mu.baseline = mean(Cases)) %>%
-	# Add group by last.year
-	group_by(last.year, add = TRUE) %>%
-	# Calculate initial baseline (cases/week) per DiseaseName_SubType and last.year
-	mutate(mu.baseline_last.year = mean(Cases)) %>%
+	# # Add group by last.year
+	# group_by(last.year, add = TRUE) %>%
+	# # Calculate initial baseline (cases/week) per DiseaseName_SubType and last.year
+	# mutate(mu.baseline_last.year = mean(Cases)) %>%
 	# Apply filters. Keep DiseaseName_SubType's with:
 	# - mu.baseline           >= 5/52.17857 cases/week on average over the entire period, or
 	# - mu.baseline_last.year >= 5/52       cases/week on average in the last year (52 weeks)
-	filter(mu.baseline >= 5/52.17857 | (last.year & mu.baseline_last.year >= 5/52)) %>%
+	filter(mu.baseline >= 5/52.17857) %>% # | (last.year & mu.baseline_last.year >= 5/52)) %>%
 	# Ungroup DiseaseName_SubType
 	ungroup() %>%
 	# Some other mutations to add
 	mutate(
-		# Convert WeekFS back to Date class
-		WeekFS = WeekFS %>% as.Date,
 		# Set inital outbreak probability and state
 		p.outbreak  = 0,
 		State       = 1L) %>%
