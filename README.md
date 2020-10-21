@@ -1,2 +1,2 @@
 # survboard
-EPI surveillance dashbaord
+EPI surveillance dashboard
